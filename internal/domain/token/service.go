@@ -1,6 +1,8 @@
 package token
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -83,7 +85,6 @@ func (s *Service) GetProducts() ([]ProductResponse, error) {
 func (s *Service) GetUserTokens(userID uint) ([]UserTokenResponse, error) {
 	var tokens []model.UserToken
 	if err := s.db.Where("user_id = ? AND status = ?", userID, 1).
-		Preload("ProductID").
 		Find(&tokens).Error; err != nil {
 		return nil, fmt.Errorf("query user tokens: %w", err)
 	}
@@ -176,5 +177,7 @@ func (s *Service) Buy(userID uint, req *BuyRequest) (*BuyResponse, error) {
 }
 
 func generateOrderNo() string {
-	return fmt.Sprintf("ORD%d", time.Now().UnixNano())
+	b := make([]byte, 8)
+	rand.Read(b)
+	return fmt.Sprintf("ORD%s", hex.EncodeToString(b))
 }

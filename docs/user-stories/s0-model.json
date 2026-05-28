@@ -1,0 +1,37 @@
+[
+  {
+    "description": "InitDB creates SQLite database with WAL mode enabled",
+    "steps": [
+      "Call InitDB with WALMode=true and in-memory path",
+      "Verify no error returned",
+      "Query journal_mode PRAGMA",
+      "Verify journal_mode is 'wal'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "InitDB auto-migrates all required tables",
+    "steps": [
+      "Call InitDB with in-memory SQLite",
+      "Verify User table exists",
+      "Verify UserProfile table exists",
+      "Verify SubAccount table exists",
+      "Verify TokenProduct table exists",
+      "Verify UserToken table exists",
+      "Verify Order table exists",
+      "Verify Payment table exists"
+    ],
+    "passes": true
+  },
+  {
+    "description": "User model has correct defaults",
+    "steps": [
+      "Create User struct with zero values",
+      "Verify Role default is 'user'",
+      "Verify Level default is 'normal'",
+      "Verify Status default is 1",
+      "Verify PreferredLanguage default is 'zh-CN'"
+    ],
+    "passes": true
+  }
+]

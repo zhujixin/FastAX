@@ -1,0 +1,43 @@
+[
+  {
+    "description": "Config loads from YAML file with all defaults applied",
+    "steps": [
+      "Create a minimal config.yaml with jwt.secret set",
+      "Call config.Load() with the file path",
+      "Verify Server.Port defaults to 8080",
+      "Verify Server.Mode defaults to 'debug'",
+      "Verify Server.ReadTimeout defaults to 30s",
+      "Verify Server.WriteTimeout defaults to 30s",
+      "Verify Database.WALMode defaults to true",
+      "Verify RateLimit.IP defaults to 100"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Config returns error when jwt.secret is empty",
+    "steps": [
+      "Create config.yaml without jwt.secret",
+      "Call config.Load() with the file path",
+      "Verify error is returned",
+      "Verify error message mentions 'jwt.secret'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Config returns error when file does not exist",
+    "steps": [
+      "Call config.Load() with nonexistent file path",
+      "Verify error is returned"
+    ],
+    "passes": true
+  },
+  {
+    "description": "ServerConfig.Addr() returns correct format",
+    "steps": [
+      "Create ServerConfig with Port 9090",
+      "Call Addr()",
+      "Verify result is ':9090'"
+    ],
+    "passes": true
+  }
+]

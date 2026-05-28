@@ -1,0 +1,112 @@
+[
+  {
+    "description": "AuthRequired rejects request without Authorization header",
+    "steps": [
+      "Create gin test context with no Authorization header",
+      "Call AuthRequired middleware",
+      "Verify response status is 401",
+      "Verify response code is CodeTokenExpired"
+    ],
+    "passes": true
+  },
+  {
+    "description": "AuthRequired rejects request with invalid token",
+    "steps": [
+      "Create gin test context with Authorization: Bearer invalid-token",
+      "Call AuthRequired middleware",
+      "Verify response status is 401"
+    ],
+    "passes": true
+  },
+  {
+    "description": "AuthRequired sets user_id and role on valid token",
+    "steps": [
+      "Generate valid access token for userID=1, role='user'",
+      "Create gin test context with Authorization: Bearer <token>",
+      "Call AuthRequired middleware",
+      "Verify context user_id is 1",
+      "Verify context role is 'user'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "AdminRequired blocks non-admin users",
+    "steps": [
+      "Set context role to 'user'",
+      "Call AdminRequired middleware",
+      "Verify response status is 403"
+    ],
+    "passes": true
+  },
+  {
+    "description": "AdminRequired allows admin and super_admin",
+    "steps": [
+      "Set context role to 'admin'",
+      "Call AdminRequired middleware",
+      "Verify handler is called (not aborted)",
+      "Set context role to 'super_admin'",
+      "Call AdminRequired middleware again",
+      "Verify handler is called (not aborted)"
+    ],
+    "passes": true
+  },
+  {
+    "description": "RateLimiter blocks requests over limit",
+    "steps": [
+      "Create RateLimiter with limit=3, window=1s",
+      "Call Allow('key') 3 times",
+      "Verify all return true",
+      "Call Allow('key') 4th time",
+      "Verify returns false"
+    ],
+    "passes": true
+  },
+  {
+    "description": "RateLimiter resets counter after window expires",
+    "steps": [
+      "Create RateLimiter with limit=2, window=100ms",
+      "Call Allow('key') 2 times (both true)",
+      "Call Allow('key') (returns false)",
+      "Wait 150ms",
+      "Call Allow('key') again",
+      "Verify returns true (counter reset)"
+    ],
+    "passes": true
+  },
+  {
+    "description": "DetectLanguage parses Accept-Language header correctly",
+    "steps": [
+      "Set Accept-Language to 'zh-CN,zh;q=0.9,en;q=0.8'",
+      "Call DetectLanguage middleware",
+      "Verify context lang is 'zh-CN'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "DetectLanguage defaults to zh-CN when header is empty",
+    "steps": [
+      "Set Accept-Language to empty string",
+      "Call DetectLanguage middleware",
+      "Verify context lang is 'zh-CN'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "DetectLanguage maps zh to zh-CN",
+    "steps": [
+      "Set Accept-Language to 'zh'",
+      "Call DetectLanguage middleware",
+      "Verify context lang is 'zh-CN'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "DetectLanguage maps unknown language to en",
+    "steps": [
+      "Set Accept-Language to 'fr'",
+      "Call DetectLanguage middleware",
+      "Verify context lang is 'en'"
+    ],
+    "passes": true
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "description": "RefreshToken generates new access and refresh tokens",
+    "steps": [
+      "Register user and get refresh_token",
+      "Call RefreshToken with the refresh_token",
+      "Verify no error returned",
+      "Verify new access_token is different from original",
+      "Verify new refresh_token is different from original",
+      "Verify response user info is correct"
+    ],
+    "passes": true
+  },
+  {
+    "description": "RefreshToken is one-time use",
+    "steps": [
+      "Register user and get refresh_token",
+      "Call RefreshToken with the refresh_token (success)",
+      "Call RefreshToken with same refresh_token again",
+      "Verify error is returned (token already used)"
+    ],
+    "passes": true
+  },
+  {
+    "description": "RefreshToken fails with invalid token",
+    "steps": [
+      "Call RefreshToken with 'invalid-token'",
+      "Verify error is returned"
+    ],
+    "passes": true
+  },
+  {
+    "description": "RefreshToken fails for frozen account",
+    "steps": [
+      "Register user and get refresh_token",
+      "Set user status=0 in database",
+      "Call RefreshToken with the refresh_token",
+      "Verify error mentions 'frozen'"
+    ],
+    "passes": true
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "description": "GetUser returns user info by ID",
+    "steps": [
+      "Register user with known ID",
+      "Call GetUser with that ID",
+      "Verify no error returned",
+      "Verify response has correct username, email, role"
+    ],
+    "passes": true
+  },
+  {
+    "description": "GetUser returns error for nonexistent user",
+    "steps": [
+      "Call GetUser with ID=99999",
+      "Verify error is returned"
+    ],
+    "passes": true
+  },
+  {
+    "description": "UpdateLanguage changes preferred language",
+    "steps": [
+      "Register user with default language 'zh-CN'",
+      "Call UpdateLanguage(userID, 'en')",
+      "Verify no error returned",
+      "Call GetUser to verify language is now 'en'"
+    ],
+    "passes": true
+  }
+]

@@ -1,0 +1,53 @@
+[
+  {
+    "description": "Buy creates order and credits user token",
+    "steps": [
+      "Create active product with id=1, price='100.00'",
+      "Call Buy(userID=1, productID=1, quantity=2)",
+      "Verify no error returned",
+      "Verify response has order_no starting with 'ORD'",
+      "Verify response status is 'paid'",
+      "Verify Order record exists in database",
+      "Verify Order status is 'paid'",
+      "Verify UserToken record created for userID=1, productID=1"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Buy fails for nonexistent product",
+    "steps": [
+      "Call Buy(userID=1, productID=99999, quantity=1)",
+      "Verify error is returned",
+      "Verify error message mentions 'not found'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Buy fails for inactive product",
+    "steps": [
+      "Create product with status=0",
+      "Call Buy(userID=1, productID=<inactive>, quantity=1)",
+      "Verify error is returned",
+      "Verify error message mentions 'not available'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Buy sets ExpiresAt when product has ValidityDays",
+    "steps": [
+      "Create product with validity_days=30",
+      "Call Buy(userID=1, productID=<id>, quantity=1)",
+      "Verify UserToken.ExpiresAt is approximately 30 days from now"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Buy does not set ExpiresAt when ValidityDays is nil",
+    "steps": [
+      "Create product with no validity_days",
+      "Call Buy(userID=1, productID=<id>, quantity=1)",
+      "Verify UserToken.ExpiresAt is zero/null"
+    ],
+    "passes": true
+  }
+]

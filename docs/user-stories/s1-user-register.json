@@ -1,0 +1,43 @@
+[
+  {
+    "description": "User registers with valid verification code",
+    "steps": [
+      "Generate verification code for test@test.com",
+      "Call Register with username='testuser', password='pass123', email='test@test.com', verifyCode=<code>",
+      "Verify no error returned",
+      "Verify response contains access_token and refresh_token",
+      "Verify response user username is 'testuser'",
+      "Verify response user role is 'user'",
+      "Verify response user level is 'normal'",
+      "Verify response user preferred_language is 'zh-CN'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Register fails with invalid verification code",
+    "steps": [
+      "Call Register with verifyCode='000000' (wrong code)",
+      "Verify error is returned",
+      "Verify error message mentions 'invalid'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Register fails with duplicate username",
+    "steps": [
+      "Register user with username='dupe'",
+      "Try to register again with same username",
+      "Verify error is returned about duplicate"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Register fails with duplicate email",
+    "steps": [
+      "Register user with email='dup@test.com'",
+      "Try to register again with same email",
+      "Verify error is returned about duplicate"
+    ],
+    "passes": true
+  }
+]

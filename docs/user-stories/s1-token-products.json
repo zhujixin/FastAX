@@ -1,0 +1,32 @@
+[
+  {
+    "description": "GetProducts returns only active products",
+    "steps": [
+      "Create 2 products with status=1 and 1 product with status=0",
+      "Call GetProducts()",
+      "Verify returns exactly 2 products",
+      "Verify all returned products have status=1"
+    ],
+    "passes": true
+  },
+  {
+    "description": "GetProducts orders by sort_order then created_at",
+    "steps": [
+      "Create product A with sort_order=2",
+      "Create product B with sort_order=1",
+      "Call GetProducts()",
+      "Verify first product is B (lower sort_order)",
+      "Verify second product is A"
+    ],
+    "passes": true
+  },
+  {
+    "description": "GetProducts returns correct product fields",
+    "steps": [
+      "Create product with name='GPT-4 Tokens', model='gpt-4', price='0.06', currency='USD'",
+      "Call GetProducts()",
+      "Verify response has correct name, model, price, currency"
+    ],
+    "passes": true
+  }
+]

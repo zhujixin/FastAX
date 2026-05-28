@@ -1,0 +1,65 @@
+[
+  {
+    "description": "User logs in with correct email and password",
+    "steps": [
+      "Register user with email='login@test.com', password='pass123'",
+      "Call Login with account='login@test.com', password='pass123'",
+      "Verify no error returned",
+      "Verify response contains access_token and refresh_token",
+      "Verify response user email is 'login@test.com'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "User logs in with correct phone and password",
+    "steps": [
+      "Register user with phone='13800138000', password='pass123'",
+      "Call Login with account='13800138000', password='pass123'",
+      "Verify no error returned"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Login fails with wrong password",
+    "steps": [
+      "Register user with email='wrong@test.com', password='correct'",
+      "Call Login with account='wrong@test.com', password='wrong'",
+      "Verify error is returned",
+      "Verify error message mentions 'invalid'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Login fails for frozen account",
+    "steps": [
+      "Register user and set status=0 in database",
+      "Call Login with correct credentials",
+      "Verify error is returned",
+      "Verify error message mentions 'frozen'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Login locks account after 5 failed attempts",
+    "steps": [
+      "Register user with email='lock@test.com', password='correct'",
+      "Call Login 5 times with wrong password",
+      "Verify LoginFailCount is 5",
+      "Verify LockedUntil is set (15 minutes in future)",
+      "Call Login with correct password",
+      "Verify error mentions 'locked'"
+    ],
+    "passes": true
+  },
+  {
+    "description": "Login resets fail count on success",
+    "steps": [
+      "Register user with email='reset@test.com', password='correct'",
+      "Call Login 3 times with wrong password",
+      "Call Login with correct password",
+      "Verify LoginFailCount is 0",
+      "Verify LockedUntil is nil/zero"
+    ],
+    "passes": true
+  }
+]

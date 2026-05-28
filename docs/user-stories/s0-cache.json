@@ -1,0 +1,15 @@
+[
+  {
+    "description": "Cache key helpers generate correct format",
+    "steps": [
+      "Call UserSessionKey(42) returns 'user:session:42'",
+      "Call UserQuotaKey(1) returns 'user:quota:1'",
+      "Call TokenProductKey(5) returns 'token:product:5'",
+      "Call RouteHealthKey(10) returns 'route:health:10'",
+      "Call RateLimitKey('192.168.1.1') returns 'rate:limit:192.168.1.1'",
+      "Call VerifyCodeKey('user@test.com') returns 'verify:code:user@test.com'",
+      "Call RefreshTokenKey('abc123') returns 'refresh:token:abc123'"
+    ],
+    "passes": true
+  }
+]

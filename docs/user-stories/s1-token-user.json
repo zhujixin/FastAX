@@ -1,0 +1,31 @@
+[
+  {
+    "description": "GetUserTokens returns tokens for specific user",
+    "steps": [
+      "User 1 buys product A",
+      "User 2 buys product B",
+      "Call GetUserTokens(userID=1)",
+      "Verify returns only product A token",
+      "Verify response includes product name and model"
+    ],
+    "passes": true
+  },
+  {
+    "description": "GetUserTokens returns empty for user with no tokens",
+    "steps": [
+      "Call GetUserTokens(userID=999)",
+      "Verify returns empty array"
+    ],
+    "passes": true
+  },
+  {
+    "description": "GetUserTokens only returns active tokens",
+    "steps": [
+      "Create active token for user",
+      "Create inactive token (status=0) for same user",
+      "Call GetUserTokens(userID)",
+      "Verify returns only the active token"
+    ],
+    "passes": true
+  }
+]

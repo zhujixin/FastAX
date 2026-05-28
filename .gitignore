@@ -33,3 +33,6 @@ config.yaml
 
 # Environment
 .env
+
+# MCP (contains tokens)
+.mcp.json

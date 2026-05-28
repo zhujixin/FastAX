@@ -39,7 +39,7 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Account  string `json:"account" binding:"required"` // email or phone
+	Account  string `json:"account" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -61,7 +61,6 @@ type UserResponse struct {
 }
 
 func (s *Service) Register(req *RegisterRequest) (*LoginResponse, error) {
-	// Validate verification code
 	identifier := req.Email
 	if identifier == "" {
 		identifier = req.Phone
@@ -74,19 +73,16 @@ func (s *Service) Register(req *RegisterRequest) (*LoginResponse, error) {
 		return nil, errors.New("invalid or expired verification code")
 	}
 
-	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
-	// Set language preference
 	lang := req.Language
 	if lang == "" {
 		lang = "zh-CN"
 	}
 
-	// Create user
 	user := model.User{
 		Username:          req.Username,
 		PasswordHash:      string(hashed),
@@ -105,7 +101,6 @@ func (s *Service) Register(req *RegisterRequest) (*LoginResponse, error) {
 }
 
 func (s *Service) Login(req *LoginRequest) (*LoginResponse, error) {
-	// Find user by email or phone
 	var user model.User
 	err := s.db.Where("email = ? OR phone = ?", req.Account, req.Account).First(&user).Error
 	if err != nil {
@@ -115,19 +110,15 @@ func (s *Service) Login(req *LoginRequest) (*LoginResponse, error) {
 		return nil, fmt.Errorf("query user: %w", err)
 	}
 
-	// Check if account is frozen
 	if user.Status == 0 {
 		return nil, errors.New("account is frozen")
 	}
 
-	// Check if account is locked
 	if user.LockedUntil != nil && time.Now().Before(*user.LockedUntil) {
 		return nil, fmt.Errorf("account locked until %s", user.LockedUntil.Format(time.RFC3339))
 	}
 
-	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		// Increment fail count
 		user.LoginFailCount++
 		if user.LoginFailCount >= 5 {
 			until := time.Now().Add(15 * time.Minute)
@@ -137,7 +128,6 @@ func (s *Service) Login(req *LoginRequest) (*LoginResponse, error) {
 		return nil, errors.New("invalid account or password")
 	}
 
-	// Reset fail count on success
 	if user.LoginFailCount > 0 {
 		user.LoginFailCount = 0
 		user.LockedUntil = nil
@@ -148,22 +138,20 @@ func (s *Service) Login(req *LoginRequest) (*LoginResponse, error) {
 }
 
 func (s *Service) RefreshToken(refreshToken string) (*LoginResponse, error) {
-	// Verify refresh token in Redis
+	if s.cache == nil {
+		return nil, errors.New("refresh not available without Redis")
+	}
 	key := cache.RefreshTokenKey(refreshToken)
 	userIDStr, err := s.cache.Get(key)
 	if err != nil || userIDStr == "" {
 		return nil, errors.New("invalid or expired refresh token")
 	}
-
-	// Delete old refresh token (rotation)
 	s.cache.Delete(key)
 
-	// Get user
 	var user model.User
 	if err := s.db.First(&user, userIDStr).Error; err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
-
 	if user.Status == 0 {
 		return nil, errors.New("account is frozen")
 	}
@@ -195,9 +183,10 @@ func (s *Service) generateTokens(user *model.User) (*LoginResponse, error) {
 		return nil, fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	// Store refresh token in Redis
-	key := cache.RefreshTokenKey(refreshToken)
-	s.cache.Set(key, fmt.Sprintf("%d", user.ID), s.cfg.RefreshExpiry)
+	if s.cache != nil {
+		key := cache.RefreshTokenKey(refreshToken)
+		s.cache.Set(key, fmt.Sprintf("%d", user.ID), s.cfg.RefreshExpiry)
+	}
 
 	return &LoginResponse{
 		AccessToken:  accessToken,

@@ -27,6 +27,9 @@ func (s *VerifyService) GenerateCode(identifier string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("generate code: %w", err)
 	}
+	if s.cache == nil {
+		return code, nil // dev mode: no Redis, skip storing
+	}
 	key := cache.VerifyCodeKey(identifier)
 	if err := s.cache.Set(key, code, verifyCodeTTL); err != nil {
 		return "", fmt.Errorf("store code: %w", err)
@@ -35,6 +38,9 @@ func (s *VerifyService) GenerateCode(identifier string) (string, error) {
 }
 
 func (s *VerifyService) VerifyCode(identifier, code string) (bool, error) {
+	if s.cache == nil {
+		return true, nil // dev mode: no Redis, accept any code
+	}
 	key := cache.VerifyCodeKey(identifier)
 	stored, err := s.cache.Get(key)
 	if err != nil || stored == "" {

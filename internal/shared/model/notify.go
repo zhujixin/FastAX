@@ -12,7 +12,7 @@ type Notification struct {
 	Language  string    `gorm:"size:16"`
 	IsRead    int       `gorm:"default:0;index:idx_user_read"`
 	ReadAt    *time.Time
-	CreatedAt time.Time `gorm:"index:idx_user_created"`
+	CreatedAt time.Time `gorm:"index:idx_notification_created"`
 }
 
 type NotificationTemplate struct {

@@ -45,6 +45,9 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 	// API routes
 	api := r.Group("/api")
 	{
+		// Public routes
+		api.GET("/tokens/products", h.Token.GetProducts)
+
 		// Auth endpoints (no JWT required)
 		auth := api.Group("/auth")
 		auth.Use(middleware.RateLimitAuth(authLimiter))
@@ -60,13 +63,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		protected.Use(middleware.AuthRequired(cfg.JWT.Secret))
 		{
 			protected.GET("/user/me", h.User.GetUser)
-
-			tokens := protected.Group("/tokens")
-			{
-				tokens.GET("/products", h.Token.GetProducts)
-				tokens.GET("/my", h.Token.GetMyTokens)
-				tokens.POST("/buy", h.Token.Buy)
-			}
+			protected.GET("/tokens/my", h.Token.GetMyTokens)
+			protected.POST("/tokens/buy", h.Token.Buy)
 
 			orders := protected.Group("/orders")
 			{

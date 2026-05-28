@@ -1,0 +1,27 @@
+server:
+  port: 8080
+  mode: debug        # debug | release | test
+  read_timeout: 30s
+  write_timeout: 30s
+
+database:
+  path: data/fastax.db
+  wal_mode: true
+  log_level: warn    # silent | error | warn | info
+
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
+  pool_size: 10
+
+jwt:
+  secret: "change-me-in-production"
+  access_expiry: 24h
+  refresh_expiry: 168h  # 7 days
+
+rate_limit:
+  ip: 60
+  auth: 5
+  user_default: 60
+  user_enterprise: 300

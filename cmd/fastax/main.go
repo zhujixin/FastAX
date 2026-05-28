@@ -43,15 +43,15 @@ func main() {
 		log.Printf("WARNING: Redis not available (running without cache): %v", err)
 		redisClient = nil
 	}
-	_ = redisClient // available for injection into domain services
+	_ = redisClient
 
 	// Create Gin engine
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
-	// Register routes (pass db and cfg for handler injection)
-	router.RegisterRoutes(r, db, cfg)
+	// Register routes with service injection
+	router.RegisterRoutes(r, db, redisClient, cfg)
 
 	// Create HTTP server
 	srv := &http.Server{

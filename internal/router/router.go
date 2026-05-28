@@ -3,13 +3,32 @@ package router
 import (
 	"time"
 
+	"github.com/fastax/fastax-server/internal/domain/token"
+	"github.com/fastax/fastax-server/internal/domain/user"
+	"github.com/fastax/fastax-server/internal/shared/cache"
 	"github.com/fastax/fastax-server/internal/shared/config"
 	"github.com/fastax/fastax-server/internal/shared/middleware"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
+type Handlers struct {
+	User  *user.Handler
+	Token *token.Handler
+}
+
+func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Handlers {
+	userSvc := user.NewService(db, redis, &cfg.JWT)
+	tokenSvc := token.NewService(db)
+	return &Handlers{
+		User:  user.NewHandler(userSvc),
+		Token: token.NewHandler(tokenSvc),
+	}
+}
+
+func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) {
+	h := NewHandlers(db, redis, cfg)
+
 	// Global middleware
 	r.Use(middleware.CORS())
 	r.Use(middleware.DetectLanguage())
@@ -30,21 +49,23 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		auth := api.Group("/auth")
 		auth.Use(middleware.RateLimitAuth(authLimiter))
 		{
-			auth.POST("/register", placeholder)
-			auth.POST("/login", placeholder)
-			auth.POST("/refresh", placeholder)
-			auth.POST("/send-code", placeholder)
+			auth.POST("/register", h.User.Register)
+			auth.POST("/login", h.User.Login)
+			auth.POST("/refresh", h.User.RefreshToken)
+			auth.POST("/send-code", h.User.SendCode)
 		}
 
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(middleware.AuthRequired(cfg.JWT.Secret))
 		{
+			protected.GET("/user/me", h.User.GetUser)
+
 			tokens := protected.Group("/tokens")
 			{
-				tokens.GET("/products", placeholder)
-				tokens.GET("/my", placeholder)
-				tokens.POST("/buy", placeholder)
+				tokens.GET("/products", h.Token.GetProducts)
+				tokens.GET("/my", h.Token.GetMyTokens)
+				tokens.POST("/buy", h.Token.Buy)
 			}
 
 			orders := protected.Group("/orders")

@@ -55,7 +55,9 @@ func TestService_GetProducts_OnlyActive(t *testing.T) {
 
 	createProduct(t, db, "Active 1", 1, 1, nil)
 	createProduct(t, db, "Active 2", 1, 2, nil)
-	createProduct(t, db, "Inactive", 0, 3, nil)
+	// Create as active then deactivate (GORM default:1 overrides zero value)
+	inactive := createProduct(t, db, "Inactive", 1, 3, nil)
+	db.Model(&model.TokenProduct{}).Where("id = ?", inactive.ID).Update("status", 0)
 
 	products, err := svc.GetProducts()
 	if err != nil {
@@ -168,7 +170,9 @@ func TestService_Buy_InactiveProduct(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	product := createProduct(t, db, "Inactive", 0, 1, nil)
+	// Create as active, then deactivate (GORM default:1 overrides zero value)
+	product := createProduct(t, db, "Inactive", 1, 1, nil)
+	db.Model(&model.TokenProduct{}).Where("id = ?", product.ID).Update("status", 0)
 
 	_, err := svc.Buy(1, &BuyRequest{
 		ProductID: product.ID,
@@ -276,9 +280,9 @@ func TestService_GetUserTokens_OnlyActive(t *testing.T) {
 
 	product := createProduct(t, db, "Active", 1, 1, nil)
 
-	// Buy and then deactivate
+	// Buy and then deactivate the token
 	svc.Buy(1, &BuyRequest{ProductID: product.ID, Quantity: 1})
-	db.Model(&model.UserToken{}).Where("user_id = ?", 1).Update("status", 0)
+	db.Model(&model.UserToken{}).Where("user_id = ? AND product_id = ?", 1, product.ID).Update("status", 0)
 
 	tokens, err := svc.GetUserTokens(1)
 	if err != nil {

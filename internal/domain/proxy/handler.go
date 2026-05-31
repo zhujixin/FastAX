@@ -273,6 +273,67 @@ func (h *Handler) ListModels(c *gin.Context) {
 	})
 }
 
+// Rerank handles POST /v1/rerank
+func (h *Handler) Rerank(c *gin.Context) {
+	var req RerankRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if req.Model == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "model is required")
+		return
+	}
+	if req.Query == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "query is required")
+		return
+	}
+	if len(req.Documents) == 0 {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "documents is required")
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	ctx := c.Request.Context()
+
+	resp, err := h.svc.Rerank(ctx, userID.(uint), &req)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}
+
+// VideoGenerations handles POST /v1/video/generations
+func (h *Handler) VideoGenerations(c *gin.Context) {
+	var req VideoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if req.Model == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "model is required")
+		return
+	}
+	if req.Prompt == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "prompt is required")
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	ctx := c.Request.Context()
+
+	resp, err := h.svc.VideoRelay(ctx, userID.(uint), &req)
+	if err != nil {
+		response.Error(c, http.StatusBadGateway, response.CodeServiceUnavail, err.Error())
+		return
+	}
+
+	c.Data(resp.StatusCode, "application/json", resp.Body)
+}
+
 // GetRelayResponse converts relay response for testing
 func GetRelayResponse(resp *RelayResponse) *relay.Response {
 	return resp.Resp

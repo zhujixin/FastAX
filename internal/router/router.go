@@ -111,6 +111,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		api.GET("/tokens/products", h.Token.GetProducts)
 		api.GET("/tokens/products/:id", h.Token.GetProduct)
 		api.GET("/models", h.Market.ListModels)
+		api.GET("/models/benchmarks", h.Market.GetBenchmarks)
 		api.GET("/providers/health", h.Market.ListProviders)
 		api.GET("/providers/:id/health", h.Market.GetProviderHealth)
 
@@ -148,6 +149,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			protected.POST("/tokens/transfer", h.Token.Transfer)
 			protected.POST("/tokens/extract", h.Token.Extract)
 			protected.POST("/models/compare", h.Market.CompareModels)
+			protected.GET("/models/recommend", h.Market.RecommendModels)
 
 			orders := protected.Group("/orders")
 			{
@@ -335,6 +337,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		v1.POST("/messages", h.Proxy.ChatMessages) // Anthropic Messages API
 		v1.POST("/images/generations", h.Proxy.ImageGenerations)
 		v1.POST("/audio/speech", h.Proxy.AudioSpeech)
+		v1.POST("/video/generations", h.Proxy.VideoGenerations)
+		v1.POST("/rerank", h.Proxy.Rerank)
 		v1.GET("/models", h.Proxy.ListModels)
 	}
 }

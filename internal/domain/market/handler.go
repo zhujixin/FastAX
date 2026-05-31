@@ -65,3 +65,27 @@ func (h *Handler) ListProviders(c *gin.Context) {
 	}
 	response.Success(c, result)
 }
+
+// GET /api/models/benchmarks?model=gpt-4
+func (h *Handler) GetBenchmarks(c *gin.Context) {
+	model := c.Query("model")
+
+	result, err := h.svc.GetBenchmarks(model)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, result)
+}
+
+// GET /api/models/recommend
+func (h *Handler) RecommendModels(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	result, err := h.svc.RecommendModels(userID.(uint))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, result)
+}

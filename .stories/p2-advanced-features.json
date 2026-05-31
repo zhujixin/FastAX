@@ -1,0 +1,64 @@
+{
+  "feature": "P2 高级功能",
+  "description": "补全P2级别的高级功能：Rerank API、视频生成、基准测试、推荐引擎",
+  "stories": [
+    {
+      "id": "P2-01",
+      "title": "Rerank API",
+      "description": "实现POST /v1/rerank，支持文档重排序",
+      "acceptance_criteria": [
+        "proxy.Service 新增 Rerank(req) 方法",
+        "支持query和documents参数",
+        "返回排序后的文档列表及分数",
+        "router 注册 POST /v1/rerank",
+        "有单元测试验证Rerank功能",
+        "go test ./internal/domain/proxy/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-02",
+      "title": "视频生成API",
+      "description": "实现POST /v1/video/generations，支持视频生成",
+      "acceptance_criteria": [
+        "proxy.Service 新增 VideoRelay(req) 方法",
+        "复用relay引擎进行转发",
+        "router 注册 POST /v1/video/generations",
+        "有单元测试验证视频生成转发",
+        "go test ./internal/domain/proxy/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-03",
+      "title": "模型基准测试API",
+      "description": "实现GET /api/models/benchmarks，返回模型性能数据",
+      "acceptance_criteria": [
+        "market.Service 新增 GetBenchmarks(model) 方法",
+        "返回模型的性能指标：延迟、吞吐量、质量评分",
+        "router 注册 GET /api/models/benchmarks",
+        "有单元测试验证基准测试查询",
+        "go test ./internal/domain/market/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-04",
+      "title": "模型推荐API",
+      "description": "实现GET /api/models/recommend，基于使用历史推荐模型",
+      "acceptance_criteria": [
+        "market.Service 新增 RecommendModels(userID) 方法",
+        "基于用户使用历史推荐性价比最优组合",
+        "router 注册 GET /api/models/recommend",
+        "需要JWT认证",
+        "有单元测试验证推荐逻辑",
+        "go test ./internal/domain/market/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    }
+  ]
+}

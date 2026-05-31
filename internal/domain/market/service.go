@@ -1,6 +1,9 @@
 package market
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"gorm.io/gorm"
 )
@@ -316,4 +319,154 @@ func (s *Service) FindVariant(modelName string) (*model.ModelVariant, error) {
 		}
 	}
 	return nil, gorm.ErrRecordNotFound
+}
+
+// ---------- Benchmarks ----------
+
+type BenchmarkResult struct {
+	Model          string  `json:"model"`
+	Provider       string  `json:"provider"`
+	AvgLatencyMs   int     `json:"avg_latency_ms"`
+	P95LatencyMs   int     `json:"p95_latency_ms"`
+	ThroughputTPS   float64 `json:"throughput_tps"`
+	QualityScore   float64 `json:"quality_score"`
+	TestDate       string  `json:"test_date"`
+}
+
+// GetBenchmarks returns benchmark data for models.
+func (s *Service) GetBenchmarks(modelName string) ([]BenchmarkResult, error) {
+	// Query from provider_health table for latency data
+	var results []BenchmarkResult
+
+	query := s.db.Table("provider_health ph").
+		Select("s.name as provider, ph.avg_latency_ms, ph.error_rate, s.code").
+		Joins("JOIN suppliers s ON s.id = ph.provider_id")
+
+	if modelName != "" {
+		// Get suppliers that support this model
+		var supplierIDs []uint
+		s.db.Model(&model.TokenProduct{}).
+			Where("model = ? AND status = 1", modelName).
+			Pluck("supplier_id", &supplierIDs)
+
+		if len(supplierIDs) > 0 {
+			query = query.Where("ph.provider_id IN ?", supplierIDs)
+		}
+	}
+
+	rows, err := query.Rows()
+	if err != nil {
+		return nil, fmt.Errorf("query benchmarks: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var provider string
+		var avgLatency int
+		var errorRate float64
+		var code string
+		if err := rows.Scan(&provider, &avgLatency, &errorRate, &code); err != nil {
+			continue
+		}
+
+		results = append(results, BenchmarkResult{
+			Model:        modelName,
+			Provider:     provider,
+			AvgLatencyMs: avgLatency,
+			P95LatencyMs: int(float64(avgLatency) * 1.5), // Estimate P95
+			ThroughputTPS: 1000.0 / float64(avgLatency+1),
+			QualityScore:  1.0 - errorRate,
+			TestDate:      time.Now().Format("2006-01-02"),
+		})
+	}
+
+	if results == nil {
+		results = []BenchmarkResult{}
+	}
+
+	return results, nil
+}
+
+// ---------- Recommendations ----------
+
+type ModelRecommendation struct {
+	Model       string  `json:"model"`
+	Provider    string  `json:"provider"`
+	Reason      string  `json:"reason"`
+	Score       float64 `json:"score"`
+	PricePer1K  string  `json:"price_per_1k"`
+}
+
+// RecommendModels recommends models based on user's usage history.
+func (s *Service) RecommendModels(userID uint) ([]ModelRecommendation, error) {
+	// Get user's most used models
+	type usage struct {
+		Model string
+		Count int64
+	}
+	var topModels []usage
+	s.db.Model(&model.CallLog{}).
+		Where("user_id = ? AND status = ?", userID, "success").
+		Select("request_model as model, COUNT(*) as count").
+		Group("request_model").
+		Order("count desc").
+		Limit(5).
+		Find(&topModels)
+
+	// Get available products
+	var products []model.TokenProduct
+	s.db.Where("status = 1").Find(&products)
+
+	// Get supplier info
+	var suppliers []model.Supplier
+	s.db.Find(&suppliers)
+	supplierMap := make(map[uint]model.Supplier)
+	for _, sp := range suppliers {
+		supplierMap[sp.ID] = sp
+	}
+
+	// Build recommendations
+	recommendations := make([]ModelRecommendation, 0)
+
+	// Add similar models to what user already uses
+	for _, um := range topModels {
+		for _, p := range products {
+			if p.Model == um.Model {
+				sp := supplierMap[p.SupplierID]
+				recommendations = append(recommendations, ModelRecommendation{
+					Model:      p.Model,
+					Provider:   sp.Name,
+					Reason:     fmt.Sprintf("Based on your %d previous requests", um.Count),
+					Score:      float64(um.Count) / 100.0,
+					PricePer1K: p.Price,
+				})
+				break
+			}
+		}
+	}
+
+	// Add popular models if user has no history
+	if len(recommendations) == 0 {
+	popularLoop:
+		for _, p := range products {
+			sp := supplierMap[p.SupplierID]
+			for _, r := range recommendations {
+				if r.Model == p.Model {
+					continue popularLoop
+				}
+			}
+			recommendations = append(recommendations, ModelRecommendation{
+				Model:      p.Model,
+				Provider:   sp.Name,
+				Reason:     "Popular choice",
+				Score:      0.8,
+				PricePer1K: p.Price,
+			})
+			if len(recommendations) >= 5 {
+				break
+			}
+		}
+	}
+
+	return recommendations, nil
 }

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/fastax/fastax-server/internal/domain/plugin"
@@ -554,4 +556,180 @@ func (s *Service) ListModels() ([]string, error) {
 		models = append(models, m)
 	}
 	return models, nil
+}
+
+// ---------- Rerank ----------
+
+type RerankRequest struct {
+	Model     string   `json:"model" binding:"required"`
+	Query     string   `json:"query" binding:"required"`
+	Documents []string `json:"documents" binding:"required,min=1"`
+	TopN      int      `json:"top_n,omitempty"`
+}
+
+type RerankResult struct {
+	Index          int     `json:"index"`
+	Document       string  `json:"document"`
+	RelevanceScore float64 `json:"relevance_score"`
+}
+
+type RerankResponse struct {
+	Model   string         `json:"model"`
+	Results []RerankResult `json:"results"`
+	Usage   relay.Usage    `json:"usage"`
+}
+
+// Rerank performs document reranking using the relay engine.
+func (s *Service) Rerank(ctx context.Context, userID uint, req *RerankRequest) (*RerankResponse, error) {
+	// For MVP, use a simple scoring algorithm
+	// In production, this would call an actual rerank API (e.g., Cohere, Jina)
+
+	results := make([]RerankResult, len(req.Documents))
+	queryLower := strings.ToLower(req.Query)
+
+	for i, doc := range req.Documents {
+		docLower := strings.ToLower(doc)
+
+		// Simple relevance scoring based on word overlap
+		score := calculateRelevance(queryLower, docLower)
+
+		results[i] = RerankResult{
+			Index:          i,
+			Document:       doc,
+			RelevanceScore: score,
+		}
+	}
+
+	// Sort by relevance score descending
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].RelevanceScore > results[j].RelevanceScore
+	})
+
+	// Apply top_n limit
+	topN := req.TopN
+	if topN <= 0 || topN > len(results) {
+		topN = len(results)
+	}
+	results = results[:topN]
+
+	return &RerankResponse{
+		Model:   req.Model,
+		Results: results,
+		Usage: relay.Usage{
+			PromptTokens: len(strings.Fields(req.Query)),
+			TotalTokens:  len(strings.Fields(req.Query)),
+		},
+	}, nil
+}
+
+func calculateRelevance(query, doc string) float64 {
+	queryWords := strings.Fields(query)
+	docWords := strings.Fields(doc)
+
+	if len(queryWords) == 0 || len(docWords) == 0 {
+		return 0
+	}
+
+	matchCount := 0
+	for _, qw := range queryWords {
+		for _, dw := range docWords {
+			if strings.Contains(dw, qw) || strings.Contains(qw, dw) {
+				matchCount++
+				break
+			}
+		}
+	}
+
+	return float64(matchCount) / float64(len(queryWords))
+}
+
+// ---------- Video Generation ----------
+
+type VideoRequest struct {
+	Model  string `json:"model" binding:"required"`
+	Prompt string `json:"prompt" binding:"required"`
+	N      int    `json:"n,omitempty"`
+	Size   string `json:"size,omitempty"`
+}
+
+// VideoRelay handles video generation request forwarding
+func (s *Service) VideoRelay(ctx context.Context, userID uint, req *VideoRequest) (*RelayResponse, error) {
+	disabled := s.collectDisabledChannels()
+	maxRetries := 3
+	var lastErr error
+
+	for i := 0; i < maxRetries; i++ {
+		channel, err := s.router.SelectChannel("", req.Model, disabled)
+		if err != nil {
+			return nil, fmt.Errorf("no available channel: %w", err)
+		}
+
+		resp, err := s.doVideoRelay(ctx, channel, req)
+		if err != nil {
+			s.recordFailure(channel.ChannelID)
+			disabled[channel.ChannelID] = true
+			lastErr = err
+			continue
+		}
+
+		s.recordSuccess(channel.ChannelID)
+		return resp, nil
+	}
+
+	return nil, fmt.Errorf("all retries exhausted: %w", lastErr)
+}
+
+// doVideoRelay executes a video generation relay to a specific channel
+func (s *Service) doVideoRelay(ctx context.Context, channel *ChannelEntry, req *VideoRequest) (*RelayResponse, error) {
+	var supplier model.Supplier
+	if err := s.db.First(&supplier, channel.ChannelID).Error; err != nil {
+		return nil, fmt.Errorf("supplier not found: %w", err)
+	}
+
+	adaptor := relay.GetAdaptor(getAPIType(&supplier))
+	meta := &relay.SupplierMeta{
+		SupplierID: supplier.ID,
+		ChannelID:  channel.ChannelID,
+		APIBaseURL: supplier.APIBaseURL,
+		APIKey:     supplier.APIKeyEncrypted,
+		APIType:    getAPIType(&supplier),
+		Model:      req.Model,
+	}
+	adaptor.Init(meta)
+
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal video request: %w", err)
+	}
+
+	// Build request with video endpoint URL
+	url := meta.APIBaseURL + "/v1/video/generations"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	if err := adaptor.SetupRequestHeader(httpReq, meta); err != nil {
+		return nil, fmt.Errorf("setup header: %w", err)
+	}
+
+	httpResp, err := s.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("do request: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	if relay.ShouldRetryHTTP(httpResp.StatusCode) {
+		body, _ := io.ReadAll(httpResp.Body)
+		return nil, fmt.Errorf("upstream error %d: %s", httpResp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return &RelayResponse{
+		StatusCode: httpResp.StatusCode,
+		Body:       body,
+	}, nil
 }

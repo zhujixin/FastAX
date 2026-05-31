@@ -47,6 +47,7 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		&RiskEvent{}, &RiskRule{},
 		&Notification{}, &NotificationTemplate{},
 		&Commission{},
+		&Withdrawal{},
 		&AuditLog{},
 		&SupplierVendor{}, &SupplierProduct{}, &Settlement{},
 		&GuardrailRule{}, &GuardrailLog{},

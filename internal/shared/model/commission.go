@@ -16,3 +16,15 @@ type Commission struct {
 }
 
 func (Commission) TableName() string { return "commission" }
+
+type Withdrawal struct {
+	ID         uint       `gorm:"primaryKey"`
+	AgentID    uint       `gorm:"index;not null"`
+	Amount     string     `gorm:"size:32;not null"`
+	Status     string     `gorm:"default:pending;size:32"`
+	Reason     string     `gorm:"type:text"`
+	CreatedAt  time.Time
+	HandledAt  *time.Time
+}
+
+func (Withdrawal) TableName() string { return "withdrawal" }

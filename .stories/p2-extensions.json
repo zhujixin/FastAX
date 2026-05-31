@@ -1,0 +1,93 @@
+{
+  "feature": "P2 扩展功能补全",
+  "description": "补全扩展功能：模型市场、企业功能、成本优化、插件管线、多模态",
+  "stories": [
+    {
+      "id": "P2-01",
+      "title": "模型市场 CompareModels 和 ProviderHealth",
+      "description": "为 market domain 补充 CompareModels、GetProviderHealth 方法和 Handler",
+      "acceptance_criteria": [
+        "market.Service 新增 CompareModels(modelNames) 方法",
+        "market.Service 新增 GetProviderHealth(providerID) 方法",
+        "market.Handler 包含 CompareModels、GetProviderHealth、ListModels 方法",
+        "router 注册 POST /api/models/compare、GET /api/providers/health、GET /api/models",
+        "有单元测试",
+        "go test ./internal/domain/market/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-02",
+      "title": "成本优化预算和告警",
+      "description": "为 cost domain 补充预算管理和告警系统",
+      "acceptance_criteria": [
+        "cost.Service 新增 SetBudget、GetBudget、CheckBudget 方法",
+        "cost.Service 新增 SetAlert、GetAlerts 方法",
+        "cost.Handler 包含缓存和预算相关端点",
+        "router 注册 /api/user/budget (GET/PUT)、/api/user/cost-alerts (GET/PUT)",
+        "有单元测试",
+        "go test ./internal/domain/cost/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-03",
+      "title": "企业功能 Handler 和路由",
+      "description": "为 enterprise domain 创建 Handler，暴露子账号管理和用量查询",
+      "acceptance_criteria": [
+        "enterprise.Handler 包含 CreateSubAccount、ListSubAccounts、SetStatus、UpdateQuota、GetUsage 方法",
+        "router 注册 /api/enterprise/sub-accounts (GET/POST)、/api/enterprise/sub-accounts/:id/status (PUT)、/api/enterprise/sub-accounts/:id/quota (PUT)、/api/enterprise/usage (GET)",
+        "有单元测试",
+        "go test ./internal/domain/enterprise/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-04",
+      "title": "插件系统接入请求管线",
+      "description": "将 plugin.PluginManager 接入 proxy relay 的请求管线中",
+      "acceptance_criteria": [
+        "proxy.Service 在 Relay 方法中调用 PluginManager.ExecuteRequest",
+        "proxy.Service 在响应返回时调用 PluginManager.ExecuteResponse",
+        "插件超时（500ms）不阻塞主请求",
+        "插件 panic 被 recover 捕获不影响主链路",
+        "有单元测试验证插件执行和故障隔离",
+        "go test ./internal/domain/proxy/... ./internal/domain/plugin/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-05",
+      "title": "Vendor Sales 和 Settlements 查询",
+      "description": "为 vendor domain 补充 GetSales 和 GetSettlements 方法",
+      "acceptance_criteria": [
+        "vendor.Service 新增 GetSales(vendorID, period) 方法",
+        "vendor.Service 新增 GetSettlements(vendorID) 方法",
+        "vendor.Handler 新增 GetSales、GetSettlements 方法",
+        "router 注册 GET /api/vendor/sales、GET /api/vendor/settlements",
+        "有单元测试",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    },
+    {
+      "id": "P2-06",
+      "title": "多模态端点（图片/语音）",
+      "description": "实现 /v1/images/generations 和 /v1/audio/speech 端点",
+      "acceptance_criteria": [
+        "proxy.Handler 新增 ImageGenerations 和 AudioSpeech 方法",
+        "router 注册 POST /v1/images/generations、POST /v1/audio/speech",
+        "复用 relay 引擎进行转发",
+        "有单元测试",
+        "go test ./internal/domain/proxy/... 通过"
+      ],
+      "status": "done",
+      "priority": "P2"
+    }
+  ]
+}

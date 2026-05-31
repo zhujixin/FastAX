@@ -106,5 +106,6 @@ func RouteHealthKey(id uint) string            { return fmt.Sprintf("route:healt
 func RateLimitKey(key string) string           { return fmt.Sprintf("rate:limit:%s", key) }
 func VerifyCodeKey(identifier string) string   { return fmt.Sprintf("verify:code:%s", identifier) }
 func RefreshTokenKey(token string) string      { return fmt.Sprintf("refresh:token:%s", token) }
+func BlacklistKey(userID uint) string          { return fmt.Sprintf("user:blacklist:%d", userID) }
 func I18nKey(locale, ns string) string         { return fmt.Sprintf("i18n:translations:%s:%s", locale, ns) }
 func SystemConfigKey(key string) string        { return fmt.Sprintf("config:system:%s", key) }

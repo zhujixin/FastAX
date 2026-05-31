@@ -1,0 +1,124 @@
+{
+  "feature": "Relay 转发引擎",
+  "description": "实现完整的 Token 代理转发引擎，包括路由、适配器、流式转发、健康检测集成",
+  "stories": [
+    {
+      "id": "RELAY-01",
+      "title": "扩展 Adaptor 接口为 9 方法",
+      "description": "将 relay.Adaptor 接口扩展为与 one-api 一致的 9 方法接口，增加 Init/DoRequest/DoResponse/ConvertImageRequest/GetModelList",
+      "acceptance_criteria": [
+        "Adaptor 接口包含 9 个方法: Init, GetRequestURL, SetupRequestHeader, ConvertRequest, ConvertImageRequest, DoRequest, DoResponse, GetModelList, GetChannelName",
+        "OpenAIAdaptor 完整实现所有 9 个方法",
+        "AnthropicAdaptor 完整实现所有 9 个方法",
+        "所有现有测试仍然通过: go test ./internal/domain/proxy/..."
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-02",
+      "title": "实现 Gemini 适配器",
+      "description": "新增 GeminiAdaptor 实现 Adaptor 接口，支持 Google Gemini API",
+      "acceptance_criteria": [
+        "GeminiAdaptor 结构体实现 Adaptor 接口的所有 9 个方法",
+        "ConvertRequest 将 OpenAI 格式转换为 Gemini API 格式",
+        "ConvertResponse 将 Gemini 响应转换为 OpenAI 兼容格式",
+        "GetRequestURL 返回正确的 Gemini API 端点",
+        "SetupRequestHeader 设置正确的认证头",
+        "GetAdaptor(APITypeGemini) 返回 GeminiAdaptor 实例",
+        "有对应的单元测试验证请求/响应转换"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-03",
+      "title": "实现真正的 SSE 流式转发",
+      "description": "将 relay 从 io.ReadAll 缓冲模式改为逐 chunk 的 SSE 流式转发，支持流中断自动切换供应商",
+      "acceptance_criteria": [
+        "Service.Relay 方法区分 stream 和非 stream 模式",
+        "流式模式下 RelayStream 返回 io.Reader 而非完整 body",
+        "Handler.ChatCompletions 使用 io.Copy 逐 chunk 转发 SSE 数据",
+        "正确处理 SSE 事件格式: data: 前缀 + 空行分隔 + data: [DONE] 结束",
+        "流式转发过程中上游断开时能自动切换到备用供应商继续转发",
+        "有单元测试验证流式转发逻辑"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-04",
+      "title": "实现渠道内存缓存与定时刷新",
+      "description": "实现类似 one-api 的 group2model2channels 内存缓存，支持 60s 定时刷新",
+      "acceptance_criteria": [
+        "ChannelCache 结构体包含 group2model2channels 映射: group -> model -> []ChannelEntry",
+        "InitChannelCache 从 DB 全量加载 ability + supplier 数据构建缓存",
+        "缓存按 priority 降序排列每个 model 的渠道列表",
+        "SyncChannelCache 启动 goroutine 每 60 秒调用 InitChannelCache 刷新",
+        "SelectChannel 优先从内存缓存查询，缓存未命中时回退到 DB",
+        "有单元测试验证缓存构建、定时刷新、渠道选择逻辑"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-05",
+      "title": "实现健康检测与路由反馈集成",
+      "description": "将 HealthChecker 的检测结果反馈到路由决策中，实现自动禁用/恢复",
+      "acceptance_criteria": [
+        "HealthChecker 检测失败时自动将渠道标记为 unhealthy",
+        "Router.SelectChannel 过滤掉 unhealthy 状态的渠道",
+        "HealthChecker 检测恢复时自动将渠道标记为 healthy",
+        "ShouldDisableChannel 集成到 relay 错误处理流程中",
+        "熔断器与健康检测协同工作: 健康检测恢复时重置熔断器状态",
+        "有单元测试验证健康状态影响路由选择"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-06",
+      "title": "Service 层适配器动态选择",
+      "description": "实现 getAdaptor 根据 supplier 配置动态选择正确的适配器",
+      "acceptance_criteria": [
+        "model.Supplier 包含 APIType 字段",
+        "Service.getAdaptor 根据 supplier.APIType 调用 relay.GetAdaptor",
+        "支持 openai/anthropic/gemini 三种 API 类型",
+        "未知 APIType 时默认使用 OpenAI 适配器",
+        "有单元测试验证不同 supplier 配置返回正确的适配器"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "RELAY-07",
+      "title": "完善错误处理与上游错误解析",
+      "description": "实现标准化的上游错误解析，支持多供应商错误格式统一",
+      "acceptance_criteria": [
+        "ParseUpstreamError 函数解析不同供应商的错误响应",
+        "支持 OpenAI 格式错误: {error: {message, type, code}}",
+        "支持 Anthropic 格式错误: {type, error: {type, message}}",
+        "支持 Gemini 格式错误: {error: {code, message, status}}",
+        "统一返回标准化的 relay.APIError 结构",
+        "有单元测试验证各供应商错误格式解析"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "RELAY-08",
+      "title": "Relay 端到端集成测试",
+      "description": "编写 Service.Relay 的端到端测试，使用 httptest 模拟上游供应商",
+      "acceptance_criteria": [
+        "测试非流式转发: 模拟 OpenAI 上游，验证请求转发和响应转换",
+        "测试流式转发: 模拟 SSE 上游，验证逐 chunk 转发",
+        "测试失败重试: 模拟上游 5xx，验证自动切换渠道重试",
+        "测试熔断器集成: 连续失败后渠道被禁用",
+        "测试适配器选择: 不同 APIType 使用不同适配器",
+        "所有测试通过: go test ./internal/domain/proxy/... -v"
+      ],
+      "status": "done",
+      "priority": "P0"
+    }
+  ]
+}

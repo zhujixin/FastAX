@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fastax/fastax-server/internal/shared/middleware"
@@ -78,6 +79,43 @@ func (h *Handler) GetUser(c *gin.Context) {
 	response.Success(c, resp)
 }
 
+func (h *Handler) Logout(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	var req struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	// Body is optional; if present, extract refresh token
+	_ = c.ShouldBindJSON(&req)
+
+	if err := h.svc.Logout(userID.(uint), req.RefreshToken); err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "logged out"})
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	if err := h.svc.ResetPassword(&req); err != nil {
+		if err.Error() == "user not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		if err.Error() == "invalid or expired verification code" {
+			response.Error(c, http.StatusBadRequest, response.CodeVerifyFailed, err.Error())
+			return
+		}
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "password reset successfully"})
+}
+
 func (h *Handler) SendCode(c *gin.Context) {
 	var req struct {
 		Email string `json:"email"`
@@ -103,4 +141,73 @@ func (h *Handler) SendCode(c *gin.Context) {
 	// TODO: Send code via email/SMS service (S4+)
 	_ = code
 	response.Success(c, gin.H{"message": "verification code sent"})
+}
+
+// GET /api/admin/users?page=1&page_size=20&keyword=xxx
+func (h *Handler) ListUsers(c *gin.Context) {
+	page, pageSize := 1, 20
+	if p := c.Query("page"); p != "" {
+		if v, err := fmt.Sscanf(p, "%d", &page); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if ps := c.Query("page_size"); ps != "" {
+		if v, err := fmt.Sscanf(ps, "%d", &pageSize); err == nil && v > 0 && v <= 100 {
+			pageSize = v
+		}
+	}
+	keyword := c.Query("keyword")
+
+	resp, err := h.svc.ListUsers(page, pageSize, keyword)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.SuccessPaginated(c, resp.Items, resp.Total, resp.Page, resp.PageSize)
+}
+
+// PUT /api/admin/users/:id/status
+func (h *Handler) SetUserStatus(c *gin.Context) {
+	var req struct {
+		Status int `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	var id uint
+	if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid user id")
+		return
+	}
+
+	if err := h.svc.SetUserStatus(id, req.Status); err != nil {
+		if err.Error() == "cannot freeze super admin account" {
+			response.Error(c, http.StatusForbidden, response.CodePermissionDeny, err.Error())
+			return
+		}
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "status updated"})
+}
+
+// PUT /api/user/language - Update user's preferred language
+func (h *Handler) UpdateLanguage(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	var req struct {
+		Language string `json:"language" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.UpdateLanguage(userID.(uint), req.Language); err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "language updated"})
 }

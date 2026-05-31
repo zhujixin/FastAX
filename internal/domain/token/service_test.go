@@ -1,6 +1,7 @@
 package token
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("open db: %v", err)
 	}
 	if err := db.AutoMigrate(
+		&model.User{},
 		&model.TokenProduct{},
 		&model.TokenInventory{},
 		&model.UserToken{},
@@ -28,6 +30,38 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
+}
+
+func createTestUser(t *testing.T, db *gorm.DB, id uint, username string) {
+	t.Helper()
+	user := model.User{
+		ID:           id,
+		Username:     username,
+		PasswordHash: "hash",
+		Email:        username + "@test.com",
+		Phone:        fmt.Sprintf("1380000%04d", id),
+		Role:         "user",
+		Status:       1,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+}
+
+func createUserToken(t *testing.T, db *gorm.DB, userID uint, productID uint, total, used, frozen string) model.UserToken {
+	t.Helper()
+	ut := model.UserToken{
+		UserID:       userID,
+		ProductID:    productID,
+		TotalAmount:  total,
+		UsedAmount:   used,
+		FrozenAmount: frozen,
+		Status:       1,
+	}
+	if err := db.Create(&ut).Error; err != nil {
+		t.Fatalf("create user token: %v", err)
+	}
+	return ut
 }
 
 func createProduct(t *testing.T, db *gorm.DB, name string, status int, sortOrder int, validityDays *int) model.TokenProduct {
@@ -300,5 +334,456 @@ func TestGenerateOrderNo(t *testing.T) {
 	}
 	if len(no) <= 3 {
 		t.Errorf("order_no too short: %v", no)
+	}
+}
+
+// ===== Transfer Tests =====
+
+func TestService_Transfer_Success(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Transfer Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	resp, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "300.00",
+	})
+	if err != nil {
+		t.Fatalf("Transfer() error = %v", err)
+	}
+	if resp.Status != "completed" {
+		t.Errorf("status = %v, want completed", resp.Status)
+	}
+
+	// Verify sender's used amount increased
+	var senderToken model.UserToken
+	db.Where("user_id = ? AND product_id = ?", 1, product.ID).First(&senderToken)
+	if senderToken.UsedAmount != "300.00" {
+		t.Errorf("sender used_amount = %v, want 300.00", senderToken.UsedAmount)
+	}
+
+	// Verify receiver got a new token
+	var receiverToken model.UserToken
+	db.Where("user_id = ? AND product_id = ?", 2, product.ID).First(&receiverToken)
+	if receiverToken.TotalAmount != "300.00" {
+		t.Errorf("receiver total_amount = %v, want 300.00", receiverToken.TotalAmount)
+	}
+
+	// Verify transfer record
+	var transfer model.TokenTransfer
+	db.Where("from_user_id = ? AND to_user_id = ?", 1, 2).First(&transfer)
+	if transfer.Amount != "300.00" {
+		t.Errorf("transfer amount = %v, want 300.00", transfer.Amount)
+	}
+	if transfer.Status != "completed" {
+		t.Errorf("transfer status = %v, want completed", transfer.Status)
+	}
+	if transfer.HandledAt == nil {
+		t.Error("handled_at should be set")
+	}
+}
+
+func TestService_Transfer_ToExistingReceiverToken(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+	createUserToken(t, db, 2, product.ID, "500.00", "0", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "200.00",
+	})
+	if err != nil {
+		t.Fatalf("Transfer() error = %v", err)
+	}
+
+	// Receiver's total should be 500 + 200 = 700
+	var receiverToken model.UserToken
+	db.Where("user_id = ? AND product_id = ?", 2, product.ID).First(&receiverToken)
+	if receiverToken.TotalAmount != "700.00" {
+		t.Errorf("receiver total_amount = %v, want 700.00", receiverToken.TotalAmount)
+	}
+}
+
+func TestService_Transfer_InsufficientBalance(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "100.00", "0", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "200.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for insufficient balance")
+	}
+	if !strings.Contains(err.Error(), "insufficient balance") {
+		t.Errorf("error = %v, want 'insufficient balance'", err)
+	}
+}
+
+func TestService_Transfer_InsufficientBalance_AfterUse(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	// Total 1000, already used 800, remaining = 200
+	createUserToken(t, db, 1, product.ID, "1000.00", "800.00", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "300.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for insufficient balance")
+	}
+	if !strings.Contains(err.Error(), "insufficient balance") {
+		t.Errorf("error = %v, want 'insufficient balance'", err)
+	}
+}
+
+func TestService_Transfer_InsufficientBalance_AfterFrozen(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	// Total 1000, used 500, frozen 300, remaining = 200
+	createUserToken(t, db, 1, product.ID, "1000.00", "500.00", "300.00")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "300.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for insufficient balance")
+	}
+}
+
+func TestService_Transfer_SelfTransfer(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "user")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  1,
+		Amount:    "100.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for self-transfer")
+	}
+	if !strings.Contains(err.Error(), "cannot transfer to yourself") {
+		t.Errorf("error = %v, want 'cannot transfer to yourself'", err)
+	}
+}
+
+func TestService_Transfer_NoTokenFound(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "100.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error when no token found")
+	}
+	if !strings.Contains(err.Error(), "no active token found") {
+		t.Errorf("error = %v, want 'no active token found'", err)
+	}
+}
+
+func TestService_Transfer_ReceiverNotFound(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  999,
+		Amount:    "100.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for nonexistent receiver")
+	}
+	if !strings.Contains(err.Error(), "receiver user not found") {
+		t.Errorf("error = %v, want 'receiver user not found'", err)
+	}
+}
+
+func TestService_Transfer_InvalidAmount(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "0",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for zero amount")
+	}
+
+	_, err = svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "-50",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for negative amount")
+	}
+}
+
+func TestService_Transfer_ExpiredToken(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	createTestUser(t, db, 1, "sender")
+	createTestUser(t, db, 2, "receiver")
+	product := createProduct(t, db, "Product", 1, 1, nil)
+
+	pastTime := time.Now().Add(-24 * time.Hour)
+	ut := model.UserToken{
+		UserID:      1,
+		ProductID:   product.ID,
+		TotalAmount: "1000.00",
+		UsedAmount:  "0",
+		Status:      1,
+		ExpiresAt:   &pastTime,
+	}
+	db.Create(&ut)
+
+	_, err := svc.Transfer(1, &TransferRequest{
+		ProductID: product.ID,
+		ToUserID:  2,
+		Amount:    "100.00",
+	})
+	if err == nil {
+		t.Fatal("Transfer() expected error for expired token")
+	}
+	if !strings.Contains(err.Error(), "expired") {
+		t.Errorf("error = %v, want 'expired'", err)
+	}
+}
+
+// ===== Extract Tests =====
+
+func TestService_Extract_Success(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Extract Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	resp, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "500.00",
+		Address:   "0x1234567890abcdef",
+	})
+	if err != nil {
+		t.Fatalf("Extract() error = %v", err)
+	}
+	if resp.Status != "completed" {
+		t.Errorf("status = %v, want completed", resp.Status)
+	}
+	if resp.TransferID == 0 {
+		t.Error("transfer_id should be nonzero")
+	}
+
+	// Verify user's used amount increased
+	var userToken model.UserToken
+	db.Where("user_id = ? AND product_id = ?", 1, product.ID).First(&userToken)
+	if userToken.UsedAmount != "500.00" {
+		t.Errorf("used_amount = %v, want 500.00", userToken.UsedAmount)
+	}
+
+	// Verify transfer record
+	var transfer model.TokenTransfer
+	db.Where("from_user_id = ? AND to_user_id = ?", 1, 0).First(&transfer)
+	if transfer.Amount != "500.00" {
+		t.Errorf("transfer amount = %v, want 500.00", transfer.Amount)
+	}
+	if transfer.Status != "completed" {
+		t.Errorf("transfer status = %v, want completed", transfer.Status)
+	}
+}
+
+func TestService_Extract_InsufficientBalance(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "100.00", "0", "0")
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "200.00",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error for insufficient balance")
+	}
+	if !strings.Contains(err.Error(), "insufficient balance") {
+		t.Errorf("error = %v, want 'insufficient balance'", err)
+	}
+}
+
+func TestService_Extract_InsufficientBalance_AfterUse(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	// Total 1000, used 800, remaining = 200
+	createUserToken(t, db, 1, product.ID, "1000.00", "800.00", "0")
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "300.00",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error for insufficient balance")
+	}
+}
+
+func TestService_Extract_NoTokenFound(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "100.00",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error when no token found")
+	}
+	if !strings.Contains(err.Error(), "no active token found") {
+		t.Errorf("error = %v, want 'no active token found'", err)
+	}
+}
+
+func TestService_Extract_InvalidAmount(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	createUserToken(t, db, 1, product.ID, "1000.00", "0", "0")
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "0",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error for zero amount")
+	}
+
+	_, err = svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "-100",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error for negative amount")
+	}
+}
+
+func TestService_Extract_ExpiredToken(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	pastTime := time.Now().Add(-24 * time.Hour)
+	ut := model.UserToken{
+		UserID:      1,
+		ProductID:   product.ID,
+		TotalAmount: "1000.00",
+		UsedAmount:  "0",
+		Status:      1,
+		ExpiresAt:   &pastTime,
+	}
+	db.Create(&ut)
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "100.00",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error for expired token")
+	}
+	if !strings.Contains(err.Error(), "expired") {
+		t.Errorf("error = %v, want 'expired'", err)
+	}
+}
+
+func TestService_Extract_AccountsForFrozen(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db)
+
+	product := createProduct(t, db, "Product", 1, 1, nil)
+	// Total 1000, used 500, frozen 300, remaining = 200
+	createUserToken(t, db, 1, product.ID, "1000.00", "500.00", "300.00")
+
+	_, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "300.00",
+		Address:   "0xabc",
+	})
+	if err == nil {
+		t.Fatal("Extract() expected error when remaining (after frozen) is insufficient")
+	}
+
+	// Should succeed with 200
+	resp, err := svc.Extract(1, &ExtractRequest{
+		ProductID: product.ID,
+		Amount:    "200.00",
+		Address:   "0xabc",
+	})
+	if err != nil {
+		t.Fatalf("Extract() error = %v", err)
+	}
+	if resp.Status != "completed" {
+		t.Errorf("status = %v, want completed", resp.Status)
 	}
 }

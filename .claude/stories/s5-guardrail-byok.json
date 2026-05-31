@@ -1,0 +1,91 @@
+{
+  "stage": "S5",
+  "title": "安全增强 — Guardrail + BYOK",
+  "modules": ["domain/guardrail", "domain/byok"],
+  "stories": [
+    {
+      "id": "S5-01",
+      "title": "护栏规则管理",
+      "as_a": "管理员",
+      "i_want_to": "配置安全护栏规则",
+      "so_that": "检测和拦截不安全内容",
+      "acceptance_criteria": [
+        "AC-1: CRUD GuardrailRule（name, stage, type, action, conditions, priority, enabled）",
+        "AC-2: stage 支持: pre_request, post_request",
+        "AC-3: type 支持: content_filter, pii_detect, prompt_injection",
+        "AC-4: action 支持: block, alert, redact"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S5-02",
+      "title": "护栏检测",
+      "as_a": "系统",
+      "i_want_to": "在请求/响应阶段执行安全检测",
+      "so_that": "防止不安全内容通过",
+      "acceptance_criteria": [
+        "AC-1: pre_request 阶段检测 prompt injection",
+        "AC-2: post_request 阶段检测 PII 泄露",
+        "AC-3: 命中规则时按 action 处置（block/alert/redact）",
+        "AC-4: 生成 GuardrailLog（trace_id, user_id, rule_id, stage, detected_entities, action_taken）",
+        "AC-5: 支持 Monitor 模式（仅记录不拦截）和 Enforce 模式"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S5-03",
+      "title": "护栏日志查询",
+      "as_a": "管理员",
+      "i_want_to": "查看护栏检测日志",
+      "so_that": "分析安全事件和调整规则",
+      "acceptance_criteria": [
+        "AC-1: 支持按 trace_id 查询",
+        "AC-2: 支持按 user_id, stage, 时间范围筛选",
+        "AC-3: 支持分页"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S5-04",
+      "title": "BYOK Key 管理",
+      "as_a": "用户",
+      "i_want_to": "添加和管理我的自有 API Key",
+      "so_that": "使用自己的 Key 调用 AI 服务",
+      "acceptance_criteria": [
+        "AC-1: 添加 BYOKKey（user_id, provider, key_encrypted, key_iv, alias, model_whitelist）",
+        "AC-2: API Key 加密存储（AES-256）",
+        "AC-3: 支持设置别名（alias）",
+        "AC-4: 支持设置模型白名单（model_whitelist）",
+        "AC-5: 支持启用/禁用/删除 Key"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S5-05",
+      "title": "BYOK 请求路由",
+      "as_a": "系统",
+      "i_want_to": "优先使用用户的 BYOK Key 转发请求",
+      "so_that": "用户可以使用自己的配额",
+      "acceptance_criteria": [
+        "AC-1: 检测用户是否有匹配的 BYOK Key",
+        "AC-2: 有 BYOK Key 时优先使用，跳过平台配额扣减",
+        "AC-3: BYOK 请求失败时可降级到平台 Key（可配置）",
+        "AC-4: 记录 last_used_at"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S5-06",
+      "title": "S5 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 S5 模块单元测试",
+      "so_that": "保证安全模块逻辑正确性",
+      "acceptance_criteria": [
+        "AC-1: 测试文件覆盖 guardrail 和 byok 模块",
+        "AC-2: go test ./internal/domain/guardrail/... ./internal/domain/byok/... 通过",
+        "AC-3: 覆盖率 >= 50%"
+      ],
+      "status": "pending"
+    }
+  ]
+}

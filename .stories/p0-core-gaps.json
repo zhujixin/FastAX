@@ -1,0 +1,79 @@
+{
+  "feature": "P0 核心链路补全",
+  "description": "补全影响 MVP 可用性的核心缺失功能：Token Transfer/Extract、Anthropic 协议、通知 Handler、退款路由",
+  "stories": [
+    {
+      "id": "P0-01",
+      "title": "Token Transfer 和 Extract 方法实现",
+      "description": "在 token domain 中补充 PDD 要求的 Transfer（转让）和 Extract（提取）Service 方法，创建 Handler 并注册路由",
+      "acceptance_criteria": [
+        "TokenService 新增 Transfer(fromUserID, toUserID, productID, amount) 方法",
+        "TokenService 新增 Extract(userID, productID, amount, targetAddress) 方法",
+        "token.Handler 新增 Transfer 和 Extract HTTP 处理方法",
+        "router 注册 POST /api/tokens/transfer 和 POST /api/tokens/extract 路由",
+        "有单元测试覆盖 Transfer 和 Extract 的正常/异常路径",
+        "go test ./internal/domain/token/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "P0-02",
+      "title": "Anthropic /v1/messages 协议端点",
+      "description": "实现 Anthropic Messages API 原生端点，复用 relay 引擎和 AnthropicAdaptor",
+      "acceptance_criteria": [
+        "proxy.Handler 新增 ChatMessages 方法处理 /v1/messages",
+        "请求格式遵循 Anthropic Messages API 规范",
+        "复用 relay.Adaptor(Anthropic) 进行请求转换和转发",
+        "支持流式和非流式模式",
+        "router 注册 POST /v1/messages 路由",
+        "有单元测试验证 Anthropic 协议端到端转发",
+        "go test ./internal/domain/proxy/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "P0-03",
+      "title": "通知模块 Handler 和路由",
+      "description": "为 notify domain 创建 HTTP Handler 并注册路由（Service 已就绪）",
+      "acceptance_criteria": [
+        "notify.Handler 结构体包含 List、UnreadCount、MarkRead、MarkAllRead 方法",
+        "router 注册 GET /api/notifications、GET /api/notifications/unread-count、PUT /api/notifications/:id/read、PUT /api/notifications/read-all",
+        "所有端点需要 JWT 鉴权",
+        "有单元测试验证 Handler 层",
+        "go test ./internal/domain/notify/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "P0-04",
+      "title": "退款路由归位到 /api/orders/:id/refund",
+      "description": "将退款入口从 /api/payments/refunds 移到 PDD 规定的 /api/orders/:id/refund",
+      "acceptance_criteria": [
+        "router 新增 POST /api/orders/:id/refund 路由",
+        "order.Handler 新增 RequestRefund 方法（委托给 payment.Service.CreateRefund）",
+        "保留 /api/payments/refunds 作为兼容端点",
+        "有单元测试验证退款流程",
+        "go test ./internal/domain/order/... ./internal/domain/payment/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "P0-05",
+      "title": "Logout 和 ResetPassword 端点",
+      "description": "补充 auth 缺失的 logout 和 reset-password 端点",
+      "acceptance_criteria": [
+        "user.Handler 新增 Logout 方法（销毁 Refresh Token）",
+        "user.Handler 新增 ResetPassword 方法",
+        "router 注册 POST /api/auth/logout 和 POST /api/auth/reset-password",
+        "有单元测试覆盖",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    }
+  ]
+}

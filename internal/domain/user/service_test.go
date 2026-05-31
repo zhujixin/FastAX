@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,21 @@ func registerUser(t *testing.T, svc *Service, username, email, password string) 
 		Username:   username,
 		Password:   password,
 		Email:      email,
+		VerifyCode: "123456",
+	})
+	if err != nil {
+		t.Fatalf("Register() error = %v", err)
+	}
+	return resp
+}
+
+func registerUserWithPhone(t *testing.T, svc *Service, username, email, phone, password string) *LoginResponse {
+	t.Helper()
+	resp, err := svc.Register(&RegisterRequest{
+		Username:   username,
+		Password:   password,
+		Email:      email,
+		Phone:      phone,
 		VerifyCode: "123456",
 	})
 	if err != nil {
@@ -335,5 +351,288 @@ func TestService_RefreshToken_InvalidToken(t *testing.T) {
 	_, err := svc.RefreshToken("invalid")
 	if err == nil {
 		t.Fatal("RefreshToken() expected error for invalid token")
+	}
+}
+
+func TestService_Logout_NoRedis(t *testing.T) {
+	svc := setupTestService(t)
+	resp := registerUser(t, svc, "logoutuser", "logout@test.com", "pass123")
+
+	// With nil cache, Logout should succeed silently
+	err := svc.Logout(resp.User.ID, "")
+	if err != nil {
+		t.Fatalf("Logout() error = %v", err)
+	}
+}
+
+func TestService_Logout_WithRefreshToken_NoRedis(t *testing.T) {
+	svc := setupTestService(t)
+	resp := registerUser(t, svc, "logoutrt", "logoutrt@test.com", "pass123")
+
+	// With nil cache, even providing a refresh token should succeed
+	err := svc.Logout(resp.User.ID, resp.RefreshToken)
+	if err != nil {
+		t.Fatalf("Logout() error = %v", err)
+	}
+}
+
+func TestService_ResetPassword_Success(t *testing.T) {
+	svc := setupTestService(t)
+	registerUser(t, svc, "resetpw", "resetpw@test.com", "oldpass")
+
+	// In dev mode (nil cache), VerifyCode always returns true
+	err := svc.ResetPassword(&ResetPasswordRequest{
+		Email:       "resetpw@test.com",
+		Code:        "123456",
+		NewPassword: "newpass123",
+	})
+	if err != nil {
+		t.Fatalf("ResetPassword() error = %v", err)
+	}
+
+	// Old password should no longer work
+	_, err = svc.Login(&LoginRequest{
+		Account:  "resetpw@test.com",
+		Password: "oldpass",
+	})
+	if err == nil {
+		t.Fatal("Login() with old password should fail after reset")
+	}
+
+	// New password should work
+	resp, err := svc.Login(&LoginRequest{
+		Account:  "resetpw@test.com",
+		Password: "newpass123",
+	})
+	if err != nil {
+		t.Fatalf("Login() with new password error = %v", err)
+	}
+	if resp.User.Email != "resetpw@test.com" {
+		t.Errorf("email = %v, want resetpw@test.com", resp.User.Email)
+	}
+}
+
+func TestService_ResetPassword_UserNotFound(t *testing.T) {
+	svc := setupTestService(t)
+
+	err := svc.ResetPassword(&ResetPasswordRequest{
+		Email:       "nonexistent@test.com",
+		Code:        "123456",
+		NewPassword: "newpass123",
+	})
+	if err == nil {
+		t.Fatal("ResetPassword() expected error for nonexistent user")
+	}
+	if err.Error() != "user not found" {
+		t.Errorf("error = %v, want 'user not found'", err)
+	}
+}
+
+func TestService_ResetPassword_LoginAfterReset(t *testing.T) {
+	svc := setupTestService(t)
+	registerUser(t, svc, "resetlogin", "resetlogin@test.com", "original")
+
+	// Reset password
+	err := svc.ResetPassword(&ResetPasswordRequest{
+		Email:       "resetlogin@test.com",
+		Code:        "000000",
+		NewPassword: "brandnew456",
+	})
+	if err != nil {
+		t.Fatalf("ResetPassword() error = %v", err)
+	}
+
+	// Login with new password should succeed
+	resp, err := svc.Login(&LoginRequest{
+		Account:  "resetlogin@test.com",
+		Password: "brandnew456",
+	})
+	if err != nil {
+		t.Fatalf("Login() error = %v", err)
+	}
+	if resp.User.Username != "resetlogin" {
+		t.Errorf("username = %v, want resetlogin", resp.User.Username)
+	}
+}
+
+// ---------- ListUsers tests ----------
+
+func TestService_ListUsers_All(t *testing.T) {
+	svc := setupTestService(t)
+
+	// Register multiple users with unique phones
+	registerUserWithPhone(t, svc, "user1", "user1@test.com", "13800000001", "pass123")
+	registerUserWithPhone(t, svc, "user2", "user2@test.com", "13800000002", "pass123")
+	registerUserWithPhone(t, svc, "user3", "user3@test.com", "13800000003", "pass123")
+
+	resp, err := svc.ListUsers(1, 20, "")
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+
+	if resp.Total < 3 {
+		t.Errorf("total = %v, want >= 3", resp.Total)
+	}
+	if len(resp.Items) < 3 {
+		t.Errorf("items len = %v, want >= 3", len(resp.Items))
+	}
+	if resp.Page != 1 {
+		t.Errorf("page = %v, want 1", resp.Page)
+	}
+	if resp.PageSize != 20 {
+		t.Errorf("page_size = %v, want 20", resp.PageSize)
+	}
+}
+
+func TestService_ListUsers_Pagination(t *testing.T) {
+	svc := setupTestService(t)
+
+	// Register 5 users with unique phones
+	for i := 0; i < 5; i++ {
+		phone := fmt.Sprintf("1380000%04d", i+1)
+		registerUserWithPhone(t, svc, "paguser"+string(rune('a'+i)), "pag"+string(rune('a'+i))+"@test.com", phone, "pass123")
+	}
+
+	// Get page 1 with page_size=2
+	resp, err := svc.ListUsers(1, 2, "")
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+
+	if resp.Total < 5 {
+		t.Errorf("total = %v, want >= 5", resp.Total)
+	}
+	if len(resp.Items) != 2 {
+		t.Errorf("items len = %v, want 2", len(resp.Items))
+	}
+	if resp.Page != 1 {
+		t.Errorf("page = %v, want 1", resp.Page)
+	}
+}
+
+func TestService_ListUsers_Search(t *testing.T) {
+	svc := setupTestService(t)
+
+	registerUserWithPhone(t, svc, "searchable", "searchable@test.com", "13800001001", "pass123")
+	registerUserWithPhone(t, svc, "other", "other@test.com", "13800001002", "pass123")
+
+	resp, err := svc.ListUsers(1, 20, "searchable")
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+
+	found := false
+	for _, item := range resp.Items {
+		if item.Username == "searchable" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected to find user 'searchable' in search results")
+	}
+}
+
+func TestService_ListUsers_SearchByEmail(t *testing.T) {
+	svc := setupTestService(t)
+
+	registerUser(t, svc, "emailuser", "unique.email@test.com", "pass123")
+
+	resp, err := svc.ListUsers(1, 20, "unique.email")
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+
+	found := false
+	for _, item := range resp.Items {
+		if item.Email == "unique.email@test.com" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected to find user by email search")
+	}
+}
+
+// ---------- SetUserStatus tests ----------
+
+func TestService_SetUserStatus_Freeze(t *testing.T) {
+	svc := setupTestService(t)
+	resp := registerUser(t, svc, "freezeme", "freezeme@test.com", "pass123")
+
+	err := svc.SetUserStatus(resp.User.ID, 0)
+	if err != nil {
+		t.Fatalf("SetUserStatus() error = %v", err)
+	}
+
+	// Try to login - should fail
+	_, err = svc.Login(&LoginRequest{
+		Account:  "freezeme@test.com",
+		Password: "pass123",
+	})
+	if err == nil {
+		t.Fatal("Login() expected error for frozen account")
+	}
+	if err.Error() != "account is frozen" {
+		t.Errorf("error = %v, want 'account is frozen'", err)
+	}
+}
+
+func TestService_SetUserStatus_Unfreeze(t *testing.T) {
+	svc := setupTestService(t)
+	resp := registerUser(t, svc, "unfreezeme", "unfreezeme@test.com", "pass123")
+
+	// Freeze
+	err := svc.SetUserStatus(resp.User.ID, 0)
+	if err != nil {
+		t.Fatalf("SetUserStatus(0) error = %v", err)
+	}
+
+	// Unfreeze
+	err = svc.SetUserStatus(resp.User.ID, 1)
+	if err != nil {
+		t.Fatalf("SetUserStatus(1) error = %v", err)
+	}
+
+	// Login should succeed
+	_, err = svc.Login(&LoginRequest{
+		Account:  "unfreezeme@test.com",
+		Password: "pass123",
+	})
+	if err != nil {
+		t.Fatalf("Login() error = %v", err)
+	}
+}
+
+func TestService_SetUserStatus_PreventFreezeSuperAdmin(t *testing.T) {
+	svc := setupTestService(t)
+
+	// Create a super admin user directly in DB
+	db := svc.db
+	superAdmin := model.User{
+		Username:     "superadmin",
+		Email:        "superadmin@test.com",
+		PasswordHash: "hash",
+		Role:         "super_admin",
+		Status:       1,
+	}
+	db.Create(&superAdmin)
+
+	err := svc.SetUserStatus(superAdmin.ID, 0)
+	if err == nil {
+		t.Fatal("SetUserStatus() expected error for freezing super admin")
+	}
+	if err.Error() != "cannot freeze super admin account" {
+		t.Errorf("error = %v, want 'cannot freeze super admin account'", err)
+	}
+}
+
+func TestService_SetUserStatus_UserNotFound(t *testing.T) {
+	svc := setupTestService(t)
+
+	err := svc.SetUserStatus(99999, 0)
+	if err == nil {
+		t.Fatal("SetUserStatus() expected error for nonexistent user")
 	}
 }

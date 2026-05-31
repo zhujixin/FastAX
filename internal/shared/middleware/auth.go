@@ -3,9 +3,11 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/fastax/fastax-server/internal/shared/cache"
 	"github.com/fastax/fastax-server/internal/shared/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -17,8 +19,9 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// AuthRequired validates JWT and sets user info in context
-func AuthRequired(secret string) gin.HandlerFunc {
+// AuthRequired validates JWT and sets user info in context.
+// redis is optional (may be nil); when present it is used to check the logout blacklist.
+func AuthRequired(secret string, redis *cache.RedisClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := extractToken(c)
 		if tokenStr == "" {
@@ -30,6 +33,22 @@ func AuthRequired(secret string) gin.HandlerFunc {
 		if err != nil {
 			response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "invalid or expired token")
 			return
+		}
+
+		// Check logout blacklist (skip if Redis unavailable)
+		if redis != nil {
+			blacklistKey := cache.BlacklistKey(claims.UserID)
+			val, err := redis.Get(blacklistKey)
+			if err == nil && val != "" {
+				logoutAt, err := strconv.ParseInt(val, 10, 64)
+				if err == nil && claims.IssuedAt != nil {
+					// IssuedAt.Unix() is int64; logoutAt is Unix seconds
+					if claims.IssuedAt.Unix() <= logoutAt {
+						response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "token has been invalidated by logout")
+						return
+					}
+				}
+			}
 		}
 
 		c.Set("user_id", claims.UserID)

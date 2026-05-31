@@ -1,0 +1,157 @@
+{
+  "stage": "S2",
+  "title": "交易链路 — Order + Payment",
+  "modules": ["domain/order", "domain/payment"],
+  "stories": [
+    {
+      "id": "S2-01",
+      "title": "创建订单",
+      "as_a": "用户",
+      "i_want_to": "购买 Token 时自动生成订单",
+      "so_that": "记录交易信息并进入支付流程",
+      "acceptance_criteria": [
+        "AC-1: 调用 CreateOrder 生成订单，包含 order_no(唯一)、user_id、product_id、quantity、unit_price、amount、final_amount、status=pending",
+        "AC-2: order_no 格式为 ORD + 16位hex，全局唯一",
+        "AC-3: amount = quantity * unit_price，final_amount = amount - discount_amount",
+        "AC-4: 不存在的 product_id 返回错误",
+        "AC-5: 状态为 pending 的订单不能重复创建（同一 product+user 30 分钟内）"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-02",
+      "title": "订单状态机",
+      "as_a": "系统",
+      "i_want_to": "管理订单状态流转",
+      "so_that": "订单按照业务规则正确流转",
+      "acceptance_criteria": [
+        "AC-1: 状态流转: pending → paid → completed; pending → cancelled; paid → refunding → refunded",
+        "AC-2: 非法状态转换返回错误（如 pending 不能直接到 completed）",
+        "AC-3: 状态变更时记录 updated_at",
+        "AC-4: 支付成功后状态变为 paid，记录 paid_at",
+        "AC-5: Token 发放后状态变为 completed"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-03",
+      "title": "订单超时取消",
+      "as_a": "系统",
+      "i_want_to": "自动取消超时未支付的订单",
+      "so_that": "释放资源，避免僵尸订单",
+      "acceptance_criteria": [
+        "AC-1: 超过 30 分钟未支付的 pending 订单自动变为 cancelled",
+        "AC-2: 超时检查可通过定时任务或惰性检查触发",
+        "AC-3: 已取消的订单不能再次支付",
+        "AC-4: 取消时记录 updated_at"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-04",
+      "title": "订单查询",
+      "as_a": "用户",
+      "i_want_to": "查询我的订单列表",
+      "so_that": "了解交易历史和订单状态",
+      "acceptance_criteria": [
+        "AC-1: 支持按 user_id 查询该用户所有订单",
+        "AC-2: 支持按 order_no 精确查询",
+        "AC-3: 支持按 status 筛选",
+        "AC-4: 支持按 created_at 时间范围筛选",
+        "AC-5: 结果按 created_at 降序排列",
+        "AC-6: 支持分页 (page, page_size)"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-05",
+      "title": "创建支付",
+      "as_a": "用户",
+      "i_want_to": "对 pending 订单发起支付",
+      "so_that": "完成 Token 购买",
+      "acceptance_criteria": [
+        "AC-1: 只有 pending 状态的订单可以发起支付",
+        "AC-2: 创建 Payment 记录，包含 payment_no(唯一)、order_id、amount、method、gateway、status=pending",
+        "AC-3: 支持的支付方式: wechat, alipay, stripe",
+        "AC-4: 支付金额必须与订单 final_amount 一致",
+        "AC-5: 返回支付参数（供前端调起支付）"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-06",
+      "title": "支付回调处理",
+      "as_a": "系统",
+      "i_want_to": "处理支付网关回调",
+      "so_that": "确认支付结果并更新订单状态",
+      "acceptance_criteria": [
+        "AC-1: 接收支付网关回调，验签后处理",
+        "AC-2: 支付成功：更新 Payment.status=success，Order.status=paid，记录 paid_at",
+        "AC-3: 支付失败：更新 Payment.status=failed",
+        "AC-4: 幂等处理：重复回调不重复更新",
+        "AC-5: 记录网关原始响应到 raw_response"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-07",
+      "title": "退款流程",
+      "as_a": "用户",
+      "i_want_to": "对已支付订单申请退款",
+      "so_that": "在符合条件时拿回款项",
+      "acceptance_criteria": [
+        "AC-1: 只有 paid 状态的订单可以申请退款",
+        "AC-2: 创建 Refund 记录，包含 refund_no(唯一)、order_id、payment_id、amount、reason、status=pending",
+        "AC-3: 退款金额不能超过订单 final_amount",
+        "AC-4: 申请退款后订单状态变为 refunding",
+        "AC-5: 管理员审核通过后，退款状态变为 refunded，订单状态变为 refunded"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-08",
+      "title": "支付后发放 Token",
+      "as_a": "系统",
+      "i_want_to": "支付成功后自动发放 Token 到用户账户",
+      "so_that": "用户购买的 Token 可立即使用",
+      "acceptance_criteria": [
+        "AC-1: 订单状态变为 paid 后，自动创建 UserToken 记录",
+        "AC-2: UserToken.total_amount = 订单 quantity 对应的 Token 数量",
+        "AC-3: 如果 product 有 validity_days，设置 expires_at",
+        "AC-4: 发放成功后订单状态变为 completed",
+        "AC-5: 发放失败（如库存不足）记录错误，不改变订单状态"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-09",
+      "title": "Order 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 Order 模块单元测试",
+      "so_that": "保证订单逻辑正确性和回归安全",
+      "acceptance_criteria": [
+        "AC-1: 测试文件 internal/domain/order/service_test.go",
+        "AC-2: 覆盖创建订单、状态流转、超时取消、查询等核心路径",
+        "AC-3: 覆盖边界情况（无效产品、重复创建、非法状态转换）",
+        "AC-4: go test ./internal/domain/order/... 通过",
+        "AC-5: 覆盖率 >= 60%"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S2-10",
+      "title": "Payment 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 Payment 模块单元测试",
+      "so_that": "保证支付逻辑正确性和回归安全",
+      "acceptance_criteria": [
+        "AC-1: 测试文件 internal/domain/payment/service_test.go",
+        "AC-2: 覆盖创建支付、回调处理、退款流程等核心路径",
+        "AC-3: 覆盖幂等性、金额校验等边界情况",
+        "AC-4: go test ./internal/domain/payment/... 通过",
+        "AC-5: 覆盖率 >= 60%"
+      ],
+      "status": "pending"
+    }
+  ]
+}

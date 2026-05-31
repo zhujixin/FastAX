@@ -14,7 +14,8 @@ type Config struct {
 	Database  DatabaseConfig  `mapstructure:"database"`
 	Redis     RedisConfig     `mapstructure:"redis"`
 	JWT       JWTConfig       `mapstructure:"jwt"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	RateLimit  RateLimitConfig  `mapstructure:"rate_limit"`
+	Guardrail  GuardrailConfig  `mapstructure:"guardrail"`
 }
 
 type ServerConfig struct {
@@ -47,6 +48,10 @@ type JWTConfig struct {
 	RefreshExpiry time.Duration `mapstructure:"refresh_expiry"`
 }
 
+type GuardrailConfig struct {
+	Mode string `mapstructure:"mode"` // "enforce" or "monitor"
+}
+
 type RateLimitConfig struct {
 	IP              int `mapstructure:"ip"`
 	Auth            int `mapstructure:"auth"`
@@ -77,6 +82,7 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("rate_limit.auth", 5)
 	v.SetDefault("rate_limit.user_default", 60)
 	v.SetDefault("rate_limit.user_enterprise", 300)
+	v.SetDefault("guardrail.mode", "monitor")
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("read config: %w", err)

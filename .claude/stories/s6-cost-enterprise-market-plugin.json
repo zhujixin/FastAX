@@ -1,0 +1,132 @@
+{
+  "stage": "S6",
+  "title": "全功能 — Cost + Enterprise + Market + Plugin",
+  "modules": ["domain/cost", "domain/enterprise", "domain/market", "domain/plugin"],
+  "stories": [
+    {
+      "id": "S6-01",
+      "title": "成本优化策略",
+      "as_a": "系统",
+      "i_want_to": "根据成本策略选择最优供应商",
+      "so_that": "降低平台运营成本",
+      "acceptance_criteria": [
+        "AC-1: 路由决策考虑供应商成本（cost_per_token）",
+        "AC-2: 支持成本优先路由策略",
+        "AC-3: 支持质量优先路由策略（权衡成本和质量）",
+        "AC-4: 记录每次请求的实际成本"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-02",
+      "title": "成本报表",
+      "as_a": "管理员",
+      "i_want_to": "查看平台成本报表",
+      "so_that": "分析和控制运营成本",
+      "acceptance_criteria": [
+        "AC-1: 按供应商统计成本",
+        "AC-2: 按模型统计成本",
+        "AC-3: 按时间维度（日/周/月）统计",
+        "AC-4: 支持导出报表"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-03",
+      "title": "企业子账号管理",
+      "as_a": "企业用户",
+      "i_want_to": "管理企业子账号",
+      "so_that": "团队成员共享 Token 配额",
+      "acceptance_criteria": [
+        "AC-1: 创建 SubAccount（parent_id, email, password_hash, token_quota, permissions）",
+        "AC-2: 设置子账号 Token 额度上限",
+        "AC-3: 设置子账号权限（api:chat, api:embedding 等）",
+        "AC-4: 支持启用/禁用子账号",
+        "AC-5: 子账号使用从父账号配额扣除"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-04",
+      "title": "企业使用量统计",
+      "as_a": "企业用户",
+      "i_want_to": "查看企业整体和各子账号的使用量",
+      "so_that": "了解团队使用情况",
+      "acceptance_criteria": [
+        "AC-1: 统计企业总使用量（tokens, 请求次数）",
+        "AC-2: 按子账号统计使用量",
+        "AC-3: 按时间维度统计",
+        "AC-4: 支持导出报表"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-05",
+      "title": "供应商结算管理",
+      "as_a": "供应商",
+      "i_want_to": "查看结算单并申请提现",
+      "so_that": "获取销售收入",
+      "acceptance_criteria": [
+        "AC-1: 系统按结算周期自动生成 Settlement（vendor_id, period_start, period_end, total_sales, commission_amount, net_amount）",
+        "AC-2: 供应商确认结算单",
+        "AC-3: 支持申请提现（bank_transfer, paypal）",
+        "AC-4: 结算状态流转: pending → confirmed → paid"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-06",
+      "title": "模型市场浏览",
+      "as_a": "用户",
+      "i_want_to": "浏览可用的 AI 模型",
+      "so_that": "选择合适的模型",
+      "acceptance_criteria": [
+        "AC-1: 列出所有可用模型（来自 supplier + vendor）",
+        "AC-2: 支持按供应商筛选",
+        "AC-3: 支持按模型类型筛选",
+        "AC-4: 显示价格、供应商、状态信息"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-07",
+      "title": "模型变体管理",
+      "as_a": "管理员",
+      "i_want_to": "配置模型后缀变体",
+      "so_that": "支持同一模型的不同定价版本",
+      "acceptance_criteria": [
+        "AC-1: CRUD ModelVariant（base_model, suffix, provider_id, price_coefficient, priority）",
+        "AC-2: 请求 model = base_model + suffix 时路由到对应 provider",
+        "AC-3: price_coefficient 影响计费"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-08",
+      "title": "插件系统",
+      "as_a": "开发者",
+      "i_want_to": "通过插件扩展平台功能",
+      "so_that": "支持自定义扩展",
+      "acceptance_criteria": [
+        "AC-1: 定义插件接口（Init, OnRequest, OnResponse, OnError）",
+        "AC-2: 插件可拦截和修改请求/响应",
+        "AC-3: 插件启用/禁用管理",
+        "AC-4: 插件执行错误不影响主流程"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S6-09",
+      "title": "S6 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 S6 模块单元测试",
+      "so_that": "保证全功能模块逻辑正确性",
+      "acceptance_criteria": [
+        "AC-1: 测试文件覆盖 cost, enterprise, market, plugin 模块",
+        "AC-2: go test ./internal/domain/cost/... ./internal/domain/enterprise/... 通过",
+        "AC-3: 覆盖率 >= 50%"
+      ],
+      "status": "pending"
+    }
+  ]
+}

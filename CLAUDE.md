@@ -2,15 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Claude Code 协作偏好
+
+- **语言**：始终使用中文回复所有问题
+- **网络**：本地开发环境使用 Clash 代理，执行需要访问外部网络的命令时确保代理已开启
+- **Go Module**：`github.com/fastax/fastax-server`
+
 ## 项目定位
 
 FastAX 是一个 **Token 代理与交易平台**（Go 单体优先），作为连接终端用户与 Token 源头（OpenAI、Claude、Gemini、DeepSeek、Qwen、GLM 等）的中间枢纽。
 
-**当前阶段**：纯文档项目（产品设计阶段），尚无源代码。
+**当前阶段**：S0（项目骨架）+ S1（用户与 Token）已完成，正在进行 S2（交易链路）。
 
 ---
 
-## Commands (when code exists)
+## Commands
 
 ```bash
 # 构建
@@ -33,6 +39,18 @@ cd web && npm run dev    # 开发
 cd web && npm run build  # 构建
 cd web && npm test       # 测试
 ```
+
+### 已实现模块
+
+| 阶段 | 模块 | 测试 | 状态 |
+|------|------|------|------|
+| S0 | `shared/config`, `shared/model`, `shared/cache`, `shared/middleware`, `shared/response` | `go test ./internal/shared/...` | ✅ 完成 |
+| S1 | `domain/user`, `domain/token` | `go test ./internal/domain/user/... ./internal/domain/token/...` | ✅ 完成 |
+| S2 | `domain/order`, `domain/payment` | `go test ./internal/domain/order/... ./internal/domain/payment/...` | ✅ 完成 |
+| S3 | `domain/proxy`, `domain/vendor` | `go test ./internal/domain/proxy/... ./internal/domain/vendor/...` | ✅ 完成 |
+| S4 | `domain/risk`, `domain/notify`, `domain/log`, `domain/commission`, `domain/stats` | `go test ./internal/domain/risk/... ./internal/domain/notify/... ./internal/domain/log/... ./internal/domain/commission/... ./internal/domain/stats/...` | ✅ 完成 |
+| S5 | `domain/guardrail`, `domain/byok` | `go test ./internal/domain/guardrail/... ./internal/domain/byok/...` | ✅ 完成 |
+| S6 | `domain/cost`, `domain/enterprise`, `domain/market`, `domain/plugin` | `go test ./internal/domain/cost/... ./internal/domain/enterprise/... ./internal/domain/market/... ./internal/domain/plugin/...` | ✅ 完成 |
 
 ---
 
@@ -195,7 +213,7 @@ internal/domain/proxy/
 | 前端 | React 18 / TypeScript / Vite / Ant Design 5 / TailwindCSS / i18next |
 | 部署 | Nginx / Docker / K8s / Prometheus+Grafana / ELK |
 
-## 目录结构（实现时）
+## 目录结构
 
 ```
 cmd/fastax/main.go          # 入口
@@ -213,3 +231,9 @@ internal/
 │   ├── guardrail/ ├── byok/ ├── cost/ ├── enterprise/ ├── market/ ├── plugin/
 └── router/                  # Gin 路由 (api.go + relay.go)
 ```
+
+## 注意事项
+
+- 测试中使用 SQLite 内存数据库，GORM `default:` 标签在 `AutoMigrate` 时可能被忽略，需要在代码中手动设置默认值
+- `shared/cache` 的 Redis 客户端可能为 nil（开发环境不启动 Redis），调用前需做 nil 检查
+- Token 产品列表为公开接口（无需登录），通过中间件白名单实现

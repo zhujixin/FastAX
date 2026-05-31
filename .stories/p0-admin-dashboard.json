@@ -1,0 +1,85 @@
+{
+  "feature": "P0 Admin管理后台补全",
+  "description": "补全Admin管理后台的核心API：Dashboard总览、用户管理、订单管理，替换现有的placeholder实现",
+  "stories": [
+    {
+      "id": "ADMIN-01",
+      "title": "Dashboard数据总览API",
+      "description": "实现GET /api/admin/dashboard/summary，返回平台核心数据指标",
+      "acceptance_criteria": [
+        "stats.Service 新增 GetDashboardSummary() 方法",
+        "返回数据包含: 总用户数、今日新增用户、总订单数、今日新增订单、总营收、今日营收、活跃Token数",
+        "Handler 方法正确调用 Service 并返回 JSON 响应",
+        "router 中替换 placeholder 为真实 Handler",
+        "有单元测试验证 Dashboard 数据查询",
+        "go test ./internal/domain/stats/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "ADMIN-02",
+      "title": "用户管理列表API",
+      "description": "实现GET /api/admin/users，支持分页和搜索的用户列表查询",
+      "acceptance_criteria": [
+        "user.Service 新增 ListUsers(page, pageSize, keyword) 方法",
+        "支持按用户名、邮箱、手机号模糊搜索",
+        "返回分页数据: items, total, page, page_size",
+        "Handler 方法正确调用 Service 并返回 JSON 响应",
+        "router 中替换 placeholder 为真实 Handler",
+        "有单元测试验证用户列表查询和分页",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "ADMIN-03",
+      "title": "订单管理列表API",
+      "description": "实现GET /api/admin/orders，支持分页和状态筛选的订单列表查询",
+      "acceptance_criteria": [
+        "order.Service 新增 ListOrders(page, pageSize, status, userID) 方法",
+        "支持按订单状态筛选: pending, paid, completed, cancelled, refunded",
+        "支持按用户ID筛选",
+        "返回分页数据: items, total, page, page_size",
+        "Handler 方法正确调用 Service 并返回 JSON 响应",
+        "router 中替换 placeholder 为真实 Handler",
+        "有单元测试验证订单列表查询和筛选",
+        "go test ./internal/domain/order/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "ADMIN-04",
+      "title": "用户状态管理API",
+      "description": "实现PUT /api/admin/users/:id/status，支持冻结/解冻用户",
+      "acceptance_criteria": [
+        "user.Service 新增 SetUserStatus(id, status) 方法",
+        "status 支持: 0=冻结, 1=正常",
+        "不能冻结超级管理员账号",
+        "Handler 方法正确调用 Service 并返回 JSON 响应",
+        "router 注册 PUT /api/admin/users/:id/status",
+        "有单元测试验证用户状态变更",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "ADMIN-05",
+      "title": "订单详情API",
+      "description": "实现GET /api/admin/orders/:id，返回订单详细信息包含支付信息",
+      "acceptance_criteria": [
+        "order.Service 新增 GetOrderDetail(id) 方法",
+        "返回数据包含: 订单基本信息、支付信息、用户信息",
+        "Handler 方法正确调用 Service 并返回 JSON 响应",
+        "router 中已存在 GET /api/admin/orders/:id 路由（验证是否工作）",
+        "有单元测试验证订单详情查询",
+        "go test ./internal/domain/order/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    }
+  ]
+}

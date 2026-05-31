@@ -1,0 +1,80 @@
+{
+  "feature": "P1 i18n国际化模块",
+  "description": "实现多语言国际化模块，支持语言配置管理、多语言响应处理、翻译文件管理",
+  "stories": [
+    {
+      "id": "I18N-01",
+      "title": "语言配置管理Service",
+      "description": "实现SupportedLanguage的CRUD操作，支持管理员启用/禁用语种、设置默认语言",
+      "acceptance_criteria": [
+        "i18n.Service 包含 ListLanguages、GetLanguage、CreateLanguage、UpdateLanguage 方法",
+        "支持启用/禁用语种 (is_enabled)",
+        "支持设置默认语言 (is_default)",
+        "支持配置回退语言链 (fallback_locale)",
+        "有单元测试验证语言配置CRUD",
+        "go test ./internal/shared/i18n/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "I18N-02",
+      "title": "语言检测中间件增强",
+      "description": "增强现有的language中间件，支持从JWT、Header、Query参数检测语言偏好",
+      "acceptance_criteria": [
+        "middleware.DetectLanguage 支持从 Accept-Language header 解析",
+        "支持从 JWT payload 中的 preferred_language 字段读取",
+        "支持从 query 参数 ?lang=xxx 覆盖",
+        "语言偏好存入 gin.Context，可通过 GetLanguage(c) 获取",
+        "有单元测试验证语言检测逻辑",
+        "go test ./internal/shared/middleware/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "I18N-03",
+      "title": "多语言错误消息支持",
+      "description": "实现多语言错误消息机制，根据用户语言返回对应语言的错误消息",
+      "acceptance_criteria": [
+        "response.Error 支持可选的多语言消息参数",
+        "定义错误消息映射表 (code -> {zh-CN: msg, en: msg, ja: msg})",
+        "根据 Accept-Language 返回对应语言的错误消息",
+        "未找到对应语言时回退到默认语言 (zh-CN)",
+        "有单元测试验证多语言错误消息",
+        "go test ./internal/shared/response/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "I18N-04",
+      "title": "翻译文件管理API",
+      "description": "实现翻译文件的存储和获取API，支持前端按语言加载翻译文件",
+      "acceptance_criteria": [
+        "i18n.Service 包含 GetTranslations(locale) 方法",
+        "翻译文件存储在数据库或文件系统",
+        "router 注册 GET /api/i18n/translations/:locale",
+        "router 注册 GET /api/i18n/languages (公开接口)",
+        "有单元测试验证翻译文件获取",
+        "go test ./internal/shared/i18n/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "I18N-05",
+      "title": "用户语言偏好更新API",
+      "description": "实现用户更新语言偏好的API端点",
+      "acceptance_criteria": [
+        "user.Service 包含 UpdateLanguage(userID, locale) 方法 (已有)",
+        "router 注册 PUT /api/user/language",
+        "更新后JWT中包含新的语言偏好",
+        "有单元测试验证语言偏好更新",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "stage": "S3",
+  "title": "代理转发 — Proxy + Vendor",
+  "modules": ["domain/proxy", "domain/vendor"],
+  "stories": [
+    {
+      "id": "S3-01",
+      "title": "供应商管理",
+      "as_a": "管理员",
+      "i_want_to": "管理 Token 供应商信息",
+      "so_that": "配置和维护 API 源头",
+      "acceptance_criteria": [
+        "AC-1: CRUD 操作 Supplier（name, code, api_base_url, api_key_encrypted, region, priority, weight）",
+        "AC-2: code 字段全局唯一",
+        "AC-3: 支持启用/禁用供应商（status 0/1）",
+        "AC-4: 支持按 region 筛选"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-02",
+      "title": "渠道能力索引",
+      "as_a": "系统",
+      "i_want_to": "维护 group+model+channel 的能力索引",
+      "so_that": "快速路由请求到合适的供应商",
+      "acceptance_criteria": [
+        "AC-1: Ability 表存储 group_id + model + channel_id 映射",
+        "AC-2: 支持全量加载到内存缓存",
+        "AC-3: 支持 60s 定时刷新缓存",
+        "AC-4: 查询接口：给定 group+model 返回可用 channel 列表"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-03",
+      "title": "路由决策",
+      "as_a": "系统",
+      "i_want_to": "根据优先级和权重选择供应商",
+      "so_that": "请求被路由到最优渠道",
+      "acceptance_criteria": [
+        "AC-1: 优先级分组：高优先级组全部不可用时才降级到低优先级",
+        "AC-2: 同优先级内按权重随机选择",
+        "AC-3: 跳过被熔断的渠道",
+        "AC-4: 跳过余额不足的渠道",
+        "AC-5: 无可用渠道时返回明确错误"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-04",
+      "title": "Adaptor 接口",
+      "as_a": "开发者",
+      "i_want_to": "定义统一的供应商适配器接口",
+      "so_that": "不同供应商通过统一接口对接",
+      "acceptance_criteria": [
+        "AC-1: 定义 Adaptor interface，包含 Init/GetRequestURL/SetupRequestHeader/ConvertRequest/DoRequest/DoResponse/GetModelList/GetChannelName",
+        "AC-2: 实现 OpenAI adaptor（P0）",
+        "AC-3: adaptor 通过 apiType 分发（GetAdaptor 工厂函数）",
+        "AC-4: 请求/响应转换正确处理 JSON"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-05",
+      "title": "请求转发（非流式）",
+      "as_a": "用户",
+      "i_want_to": "通过 FastAX 代理发送非流式 API 请求",
+      "so_that": "透明使用各供应商 API",
+      "acceptance_criteria": [
+        "AC-1: /v1/chat/completions 端点接收请求",
+        "AC-2: 鉴权后根据 model 路由到对应供应商",
+        "AC-3: 请求转换后转发，响应转换后返回",
+        "AC-4: 正确传递 HTTP 状态码",
+        "AC-5: 错误时返回标准错误格式"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-06",
+      "title": "请求转发（流式 SSE）",
+      "as_a": "用户",
+      "i_want_to": "通过 FastAX 代理发送流式 API 请求",
+      "so_that": "实时获取 AI 响应",
+      "acceptance_criteria": [
+        "AC-1: 支持 stream=true 参数",
+        "AC-2: SSE 流式输出，零拷贝转发",
+        "AC-3: 流中断时自动切换备用供应商重试",
+        "AC-4: 正确处理 stream: [DONE] 结束标记"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-07",
+      "title": "重试机制",
+      "as_a": "系统",
+      "i_want_to": "请求失败时自动重试其他渠道",
+      "so_that": "提高请求成功率",
+      "acceptance_criteria": [
+        "AC-1: 仅重试 429/5xx/超时错误",
+        "AC-2: 不重试 401/403/4xx 客户端错误",
+        "AC-3: 重试时跳过刚失败的渠道",
+        "AC-4: 最大重试次数可配置（默认 3）",
+        "AC-5: 所有渠道都失败后返回最后的错误"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-08",
+      "title": "熔断机制",
+      "as_a": "系统",
+      "i_want_to": "自动禁用持续失败的渠道",
+      "so_that": "避免无效请求，快速降级",
+      "acceptance_criteria": [
+        "AC-1: 5xx/超时错误累计阈值触发熔断",
+        "AC-2: 排除 401/403/429 错误（不计入熔断）",
+        "AC-3: 熔断后渠道 status 设为 3（禁用）",
+        "AC-4: 健康检测恢复后自动解除熔断",
+        "AC-5: ShouldDisableChannel 决策函数"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-09",
+      "title": "健康检测",
+      "as_a": "系统",
+      "i_want_to": "定期检测供应商 API 健康状态",
+      "so_that": "及时发现和恢复故障渠道",
+      "acceptance_criteria": [
+        "AC-1: 10s 周期 ping 检测",
+        "AC-2: 5min 周期性深度检测",
+        "AC-3: 检测结果记录到 ProviderHealth 表",
+        "AC-4: 恢复的渠道自动重新启用"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-10",
+      "title": "配额预扣与后扣",
+      "as_a": "系统",
+      "i_want_to": "在请求转发前后管理用户配额",
+      "so_that": "实现按量计费",
+      "acceptance_criteria": [
+        "AC-1: 请求前预扣配额（PreConsume），默认 100 tokens",
+        "AC-2: 成功后按实际 usage 后扣（PostConsume），多退少补",
+        "AC-3: 失败后退回全部预扣配额",
+        "AC-4: 配额不足时拒绝请求",
+        "AC-5: 配额计算公式: 分组倍率 × 模型倍率 × (prompt + completion × 补全倍率)"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-11",
+      "title": "批量配额更新",
+      "as_a": "系统",
+      "i_want_to": "批量更新用户配额到数据库",
+      "so_that": "减少 DB 写入频率，提高性能",
+      "acceptance_criteria": [
+        "AC-1: 小额配额更新先缓存到 Redis",
+        "AC-2: 每 10s 或满 100 条批量刷入 DB",
+        "AC-3: 配置参数: batchUpdateEnabled, batchUpdateInterval, batchUpdateThreshold",
+        "AC-4: 进程退出时确保缓存数据写入 DB"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-12",
+      "title": "供应商入驻",
+      "as_a": "供应商",
+      "i_want_to": "申请入驻平台",
+      "so_that": "在平台上销售 Token",
+      "acceptance_criteria": [
+        "AC-1: 供应商提交入驻申请（company_name, contact_email, api_base_url, commission_rate）",
+        "AC-2: 初始状态为 pending",
+        "AC-3: 管理员审核通过后状态变为 approved",
+        "AC-4: 审核驳回时填写 reject_reason"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-13",
+      "title": "供应商商品管理",
+      "as_a": "供应商",
+      "i_want_to": "管理我发布的 Token 商品",
+      "so_that": "上架和维护商品信息",
+      "acceptance_criteria": [
+        "AC-1: 供应商创建 SupplierProduct（name, model, api_endpoint, unit, price）",
+        "AC-2: 商品初始状态 pending_review",
+        "AC-3: 管理员审核后变为 active",
+        "AC-4: 支持价格区间限制（min_price, max_price）",
+        "AC-5: 支持库存管理（stock_total, stock_remaining）"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S3-14",
+      "title": "Proxy + Vendor 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 Proxy 和 Vendor 模块单元测试",
+      "so_that": "保证代理转发和供应商逻辑正确性",
+      "acceptance_criteria": [
+        "AC-1: 测试文件 internal/domain/proxy/service_test.go",
+        "AC-2: 测试文件 internal/domain/vendor/service_test.go",
+        "AC-3: 覆盖路由决策、熔断、重试等核心路径",
+        "AC-4: go test ./internal/domain/proxy/... 和 go test ./internal/domain/vendor/... 通过",
+        "AC-5: 覆盖率 >= 50%"
+      ],
+      "status": "pending"
+    }
+  ]
+}

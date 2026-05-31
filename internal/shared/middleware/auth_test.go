@@ -90,7 +90,7 @@ func TestAuthRequired_MissingHeader(t *testing.T) {
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 
-	r.GET("/", AuthRequired("secret"), func(c *gin.Context) {
+	r.GET("/", AuthRequired("secret", nil), func(c *gin.Context) {
 		c.Status(200)
 	})
 	req := httptest.NewRequest("GET", "/", nil)
@@ -105,7 +105,7 @@ func TestAuthRequired_InvalidToken(t *testing.T) {
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 
-	r.GET("/", AuthRequired("secret"), func(c *gin.Context) {
+	r.GET("/", AuthRequired("secret", nil), func(c *gin.Context) {
 		c.Status(200)
 	})
 	req := httptest.NewRequest("GET", "/", nil)
@@ -126,7 +126,7 @@ func TestAuthRequired_ValidToken(t *testing.T) {
 
 	var gotUserID uint
 	var gotRole string
-	r.GET("/", AuthRequired(secret), func(c *gin.Context) {
+	r.GET("/", AuthRequired(secret, nil), func(c *gin.Context) {
 		uid, exists := c.Get("user_id")
 		if !exists {
 			t.Error("user_id not set in context")

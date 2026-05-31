@@ -43,6 +43,12 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type ResetPasswordRequest struct {
+	Email       string `json:"email" binding:"required,email"`
+	Code        string `json:"code" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6,max=64"`
+}
+
 type LoginResponse struct {
 	AccessToken  string        `json:"access_token"`
 	RefreshToken string        `json:"refresh_token"`
@@ -172,6 +178,56 @@ func (s *Service) UpdateLanguage(userID uint, language string) error {
 		Update("preferred_language", language).Error
 }
 
+func (s *Service) Logout(userID uint, refreshToken string) error {
+	if s.cache == nil {
+		return nil // dev mode: no Redis, skip
+	}
+
+	// Delete refresh token if provided
+	if refreshToken != "" {
+		key := cache.RefreshTokenKey(refreshToken)
+		_ = s.cache.Delete(key)
+	}
+
+	// Blacklist the user's access tokens until they expire
+	blacklistKey := cache.BlacklistKey(userID)
+	return s.cache.Set(blacklistKey, time.Now().Unix(), s.cfg.AccessExpiry)
+}
+
+func (s *Service) ResetPassword(req *ResetPasswordRequest) error {
+	// Find user by email
+	var user model.User
+	if err := s.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("user not found")
+		}
+		return fmt.Errorf("query user: %w", err)
+	}
+
+	// Verify the code
+	ok, err := s.verify.VerifyCode(req.Email, req.Code)
+	if err != nil {
+		return fmt.Errorf("verify code error: %w", err)
+	}
+	if !ok {
+		return errors.New("invalid or expired verification code")
+	}
+
+	// Hash the new password
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	// Update password in DB
+	if err := s.db.Model(&model.User{}).Where("id = ?", user.ID).
+		Update("password_hash", string(hashed)).Error; err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) generateTokens(user *model.User) (*LoginResponse, error) {
 	accessToken, err := middleware.GenerateAccessToken(user.ID, user.Role, s.cfg.Secret, s.cfg.AccessExpiry)
 	if err != nil {
@@ -206,4 +262,75 @@ func toUserResponse(u *model.User) *UserResponse {
 		Level:             u.Level,
 		PreferredLanguage: u.PreferredLanguage,
 	}
+}
+
+// ---------- Admin methods ----------
+
+type UserListResponse struct {
+	Items    []UserResponse `json:"items"`
+	Total    int64          `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"page_size"`
+}
+
+// ListUsers returns paginated user list with optional keyword search.
+func (s *Service) ListUsers(page, pageSize int, keyword string) (*UserListResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	query := s.db.Model(&model.User{})
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("username LIKE ? OR email LIKE ? OR phone LIKE ?", like, like, like)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("count users: %w", err)
+	}
+
+	var users []model.User
+	if err := query.Order("id desc").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("query users: %w", err)
+	}
+
+	items := make([]UserResponse, len(users))
+	for i, u := range users {
+		items[i] = *toUserResponse(&u)
+	}
+
+	return &UserListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
+}
+
+// SetUserStatus updates user status (0=frozen, 1=active).
+func (s *Service) SetUserStatus(id uint, status int) error {
+	// Prevent freezing super admin
+	var user model.User
+	if err := s.db.First(&user, id).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+	if user.Role == "super_admin" && status == 0 {
+		return errors.New("cannot freeze super admin account")
+	}
+
+	result := s.db.Model(&model.User{}).Where("id = ?", id).Update("status", status)
+	if result.Error != nil {
+		return fmt.Errorf("update status: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
 }

@@ -1,0 +1,149 @@
+{
+  "stage": "S4",
+  "title": "增值模块 — Risk + Notify + Stats + Commission + Log",
+  "modules": ["domain/risk", "domain/notify", "domain/stats", "domain/commission", "domain/log"],
+  "stories": [
+    {
+      "id": "S4-01",
+      "title": "风控规则管理",
+      "as_a": "管理员",
+      "i_want_to": "配置风控规则",
+      "so_that": "检测和防范异常行为",
+      "acceptance_criteria": [
+        "AC-1: CRUD RiskRule（name, category, conditions, action, risk_level, priority, enabled）",
+        "AC-2: category 支持: register, trade, api",
+        "AC-3: action 支持: alert, rate_limit, freeze",
+        "AC-4: 支持启用/禁用规则"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-02",
+      "title": "风控事件检测",
+      "as_a": "系统",
+      "i_want_to": "根据规则检测异常行为并生成事件",
+      "so_that": "及时发现风险",
+      "acceptance_criteria": [
+        "AC-1: 检测异常登录（abnormal_login）：异地登录、频繁失败",
+        "AC-2: 检测大额交易（large_trade）：单笔金额超阈值",
+        "AC-3: 检测高频 API 调用（rapid_api）：单位时间超限",
+        "AC-4: 生成 RiskEvent 记录（user_id, event_type, risk_level, description, action_taken）",
+        "AC-5: 按规则配置执行处置动作"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-03",
+      "title": "风控事件处理",
+      "as_a": "管理员",
+      "i_want_to": "查看和处理风控事件",
+      "so_that": "人工审核和处置风险",
+      "acceptance_criteria": [
+        "AC-1: 查询风控事件列表（按 user_id, event_type, risk_level, status 筛选）",
+        "AC-2: 处理事件：更新 status、handler_id、handled_at",
+        "AC-3: 支持分页和时间范围筛选"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-04",
+      "title": "通知发送",
+      "as_a": "系统",
+      "i_want_to": "向用户发送通知",
+      "so_that": "用户及时了解重要事件",
+      "acceptance_criteria": [
+        "AC-1: 创建 Notification（user_id, type, channel, title, content）",
+        "AC-2: type 支持: order, security, expiry, system",
+        "AC-3: channel 支持: in_app, sms, email",
+        "AC-4: 支持 NotificationTemplate 模板渲染",
+        "AC-5: 支持多语言通知（language 字段）"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-05",
+      "title": "通知查询与已读",
+      "as_a": "用户",
+      "i_want_to": "查看我的通知并标记已读",
+      "so_that": "了解平台消息",
+      "acceptance_criteria": [
+        "AC-1: 查询用户通知列表，支持分页",
+        "AC-2: 支持按 type 筛选",
+        "AC-3: 支持按 is_read 筛选（未读/已读）",
+        "AC-4: 标记通知为已读（更新 is_read=1, read_at）",
+        "AC-5: 支持批量标记已读"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-06",
+      "title": "调用日志记录",
+      "as_a": "系统",
+      "i_want_to": "记录每次 API 调用的详细信息",
+      "so_that": "用于计费、审计和问题排查",
+      "acceptance_criteria": [
+        "AC-1: 创建 CallLog（trace_id, user_id, product_id, supplier_id, request_path, request_model, tokens_*, response_time_ms, status_code, status）",
+        "AC-2: trace_id 全链路唯一",
+        "AC-3: 记录流式/非流式标记（is_stream）",
+        "AC-4: 记录错误信息（error_message）",
+        "AC-5: 高频写入不影响主流程性能"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-07",
+      "title": "调用日志查询",
+      "as_a": "用户",
+      "i_want_to": "查询我的 API 调用记录",
+      "so_that": "了解使用情况",
+      "acceptance_criteria": [
+        "AC-1: 按 user_id 查询调用记录",
+        "AC-2: 支持按时间范围、model、status 筛选",
+        "AC-3: 支持分页",
+        "AC-4: 管理员可查看所有用户的调用记录"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-08",
+      "title": "佣金记录",
+      "as_a": "系统",
+      "i_want_to": "记录代理商的佣金",
+      "so_that": "支持分销佣金结算",
+      "acceptance_criteria": [
+        "AC-1: 创建 Commission（agent_id, customer_id, order_id, order_amount, commission_rate, commission_amount）",
+        "AC-2: commission_amount = order_amount * commission_rate",
+        "AC-3: 状态流转: pending → settled",
+        "AC-4: 支持按 agent_id 查询佣金列表"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-09",
+      "title": "审计日志",
+      "as_a": "管理员",
+      "i_want_to": "查看系统操作审计日志",
+      "so_that": "追踪关键操作",
+      "acceptance_criteria": [
+        "AC-1: 创建 AuditLog（trace_id, operator_id, action, resource_type, resource_id, detail, result）",
+        "AC-2: action 格式: resource.action（如 user.create, order.refund）",
+        "AC-3: 支持按 operator_id, action, 时间范围查询",
+        "AC-4: 记录操作前后变更详情"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "S4-10",
+      "title": "S4 单元测试",
+      "as_a": "开发者",
+      "i_want_to": "有完整的 S4 模块单元测试",
+      "so_that": "保证增值模块逻辑正确性",
+      "acceptance_criteria": [
+        "AC-1: 测试文件覆盖 risk, notify, stats, commission, log 五个模块",
+        "AC-2: go test ./internal/domain/risk/... ./internal/domain/notify/... 通过",
+        "AC-3: 覆盖率 >= 50%"
+      ],
+      "status": "pending"
+    }
+  ]
+}

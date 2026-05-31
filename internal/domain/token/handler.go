@@ -48,3 +48,33 @@ func (h *Handler) Buy(c *gin.Context) {
 	}
 	response.Success(c, resp)
 }
+
+func (h *Handler) Transfer(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var req TransferRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	resp, err := h.svc.Transfer(userID.(uint), &req)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}
+
+func (h *Handler) Extract(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var req ExtractRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	resp, err := h.svc.Extract(userID.(uint), &req)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}

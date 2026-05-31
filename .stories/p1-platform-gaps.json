@@ -1,0 +1,104 @@
+{
+  "feature": "P1 平台完整性补全",
+  "description": "补全平台增值功能：风控/护栏/BYOK Handler、日志导出、佣金逻辑、统计模块",
+  "stories": [
+    {
+      "id": "P1-01",
+      "title": "风控模块 Handler 和路由",
+      "description": "为 risk domain 创建 HTTP Handler 并注册 admin 路由（Service 已就绪）",
+      "acceptance_criteria": [
+        "risk.Handler 包含 ListRules、CreateRule、SetRuleEnabled、ListEvents、HandleEvent 方法",
+        "router 注册 /api/admin/risk/rules (GET/POST)、/api/admin/risk/rules/:id/enabled (PUT)、/api/admin/risk/events (GET)、/api/admin/risk/events/:id/handle (PUT)",
+        "所有端点需要 admin 鉴权",
+        "有单元测试",
+        "go test ./internal/domain/risk/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-02",
+      "title": "安全护栏 Handler 和路由",
+      "description": "为 guardrail domain 创建 HTTP Handler 并注册 admin 路由",
+      "acceptance_criteria": [
+        "guardrail.Handler 包含 ListRules、CreateRule、SetRuleEnabled、ListLogs、Detect 方法",
+        "router 注册 /api/admin/guardrails/rules (GET/POST)、/api/admin/guardrails/rules/:id/enabled (PUT)、/api/admin/guardrails/logs (GET)",
+        "有单元测试",
+        "go test ./internal/domain/guardrail/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-03",
+      "title": "BYOK Handler 和路由",
+      "description": "为 byok domain 创建 HTTP Handler 并注册用户路由",
+      "acceptance_criteria": [
+        "byok.Handler 包含 ListKeys、AddKey、DeleteKey、SetKeyStatus 方法",
+        "router 注册 /api/byok/keys (GET/POST)、/api/byok/keys/:id (DELETE)、/api/byok/keys/:id/status (PUT)",
+        "所有端点需要 JWT 鉴权",
+        "有单元测试",
+        "go test ./internal/domain/byok/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-04",
+      "title": "日志模块 Export 方法和 Handler",
+      "description": "为 log domain 补充 Export 方法并创建 Handler",
+      "acceptance_criteria": [
+        "log.Service 新增 Export(query) 方法，返回 CSV 格式审计日志",
+        "log.Handler 包含 ListAuditLogs、Export 方法",
+        "router 注册 GET /api/admin/audit/logs、GET /api/admin/audit/export",
+        "有单元测试",
+        "go test ./internal/domain/log/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-05",
+      "title": "佣金模块 Withdraw 和 Calculate 逻辑",
+      "description": "为 commission domain 补充 Withdraw 提现方法和真实的 Calculate 计算逻辑",
+      "acceptance_criteria": [
+        "commission.Service 新增 Withdraw(agentID, amount) 方法",
+        "commission.Service.Calculate 使用真实的佣金率计算（替换桩代码）",
+        "commission.Handler 包含 List、Settle、Withdraw、GetTotal 方法",
+        "router 注册 /api/admin/commission/* 路由",
+        "有单元测试",
+        "go test ./internal/domain/commission/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-06",
+      "title": "统计模块完整实现",
+      "description": "新建 stats domain 的 Service + Handler + 路由，提供用量统计和消费报表",
+      "acceptance_criteria": [
+        "stats.Service 包含 GetUsage、GetConsumption、GetBills、GetSummary 方法",
+        "stats.Handler 提供 HTTP 接口",
+        "router 注册 /api/stats/usage、/api/stats/consumption、/api/stats/bills、/api/stats/summary",
+        "admin 端注册 /api/admin/reports/daily、/api/admin/reports/monthly",
+        "有单元测试",
+        "go test ./internal/domain/stats/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "P1-07",
+      "title": "通知模板管理路由",
+      "description": "补充 notify domain 的模板管理 admin 路由",
+      "acceptance_criteria": [
+        "notify.Handler 新增 ListTemplates、CreateTemplate、UpdateTemplate 方法",
+        "router 注册 /api/admin/notifications/templates (GET/POST/PUT)",
+        "有单元测试",
+        "go test ./internal/domain/notify/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    }
+  ]
+}

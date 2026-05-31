@@ -1,0 +1,29 @@
+{
+  "project": "FastAX",
+  "started_at": "2026-05-28T22:00:00+08:00",
+  "completed_at": "2026-05-28T22:30:00+08:00",
+  "current_stage": "completed",
+  "total_stories": 49,
+  "completed_stories": 49,
+  "stages": {
+    "S0": { "status": "completed", "stories": 0, "completed": 0 },
+    "S1": { "status": "completed", "stories": 0, "completed": 0 },
+    "S2": { "status": "completed", "stories": 10, "completed": 10 },
+    "S3": { "status": "completed", "stories": 14, "completed": 14 },
+    "S4": { "status": "completed", "stories": 10, "completed": 10 },
+    "S5": { "status": "completed", "stories": 6, "completed": 6 },
+    "S6": { "status": "completed", "stories": 9, "completed": 9 }
+  },
+  "log": [
+    {"time": "2026-05-28T22:00:00+08:00", "action": "start", "stage": "S2"},
+    {"time": "2026-05-28T22:10:00+08:00", "action": "complete", "stage": "S2"},
+    {"time": "2026-05-28T22:10:00+08:00", "action": "start", "stage": "S3"},
+    {"time": "2026-05-28T22:20:00+08:00", "action": "complete", "stage": "S3"},
+    {"time": "2026-05-28T22:20:00+08:00", "action": "start", "stage": "S4"},
+    {"time": "2026-05-28T22:25:00+08:00", "action": "complete", "stage": "S4"},
+    {"time": "2026-05-28T22:25:00+08:00", "action": "start", "stage": "S5"},
+    {"time": "2026-05-28T22:28:00+08:00", "action": "complete", "stage": "S5"},
+    {"time": "2026-05-28T22:28:00+08:00", "action": "start", "stage": "S6"},
+    {"time": "2026-05-28T22:30:00+08:00", "action": "complete", "stage": "S6"}
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "feature": "P1 供应商管理API补全",
+  "description": "补全供应商相关的P1级别API：店铺更新、商品管理、结算确认/提现",
+  "stories": [
+    {
+      "id": "VENDOR-01",
+      "title": "供应商店铺信息更新API",
+      "description": "实现PUT /api/vendor/profile，供应商更新自己的店铺信息",
+      "acceptance_criteria": [
+        "vendor.Service 新增 UpdateVendorProfile(vendorID, req) 方法",
+        "支持更新: 联系人、邮箱、电话、API地址",
+        "router 注册 PUT /api/vendor/profile",
+        "需要供应商身份验证",
+        "有单元测试验证店铺信息更新",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "VENDOR-02",
+      "title": "供应商商品更新API",
+      "description": "实现PUT /api/vendor/products/:id，供应商更新自己的商品信息",
+      "acceptance_criteria": [
+        "vendor.Service 新增 UpdateProduct(vendorID, productID, req) 方法",
+        "只能更新自己的商品",
+        "支持更新: 名称、价格、描述、状态",
+        "router 注册 PUT /api/vendor/products/:id",
+        "有单元测试验证商品更新",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "VENDOR-03",
+      "title": "供应商结算单确认API",
+      "description": "实现POST /api/vendor/settlements/:id/confirm，供应商确认结算单",
+      "acceptance_criteria": [
+        "vendor.Service 新增 ConfirmSettlement(vendorID, settlementID) 方法",
+        "只能确认自己的结算单",
+        "更新结算单状态为confirmed",
+        "router 注册 POST /api/vendor/settlements/:id/confirm",
+        "有单元测试验证结算确认",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "VENDOR-04",
+      "title": "供应商提现申请API",
+      "description": "实现POST /api/vendor/settlements/:id/withdraw，供应商申请提现",
+      "acceptance_criteria": [
+        "vendor.Service 新增 RequestWithdrawal(vendorID, settlementID) 方法",
+        "只能对已确认的结算单申请提现",
+        "更新结算单状态为withdrawn",
+        "router 注册 POST /api/vendor/settlements/:id/withdraw",
+        "有单元测试验证提现申请",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "VENDOR-05",
+      "title": "管理员冻结供应商API",
+      "description": "实现POST /api/admin/vendors/:id/suspend，管理员冻结供应商",
+      "acceptance_criteria": [
+        "vendor.Service 新增 SuspendVendor(vendorID, reason) 方法",
+        "更新供应商状态为suspended",
+        "同时禁用该供应商的所有商品",
+        "router 注册 POST /api/admin/vendors/:id/suspend",
+        "需要admin权限",
+        "有单元测试验证供应商冻结",
+        "go test ./internal/domain/vendor/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    }
+  ]
+}

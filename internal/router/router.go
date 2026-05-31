@@ -235,6 +235,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.GET("/vendors", h.Vendor.ListVendors)
 			admin.GET("/vendors/:id", h.Vendor.GetVendor)
 			admin.POST("/vendors/:id/review", h.Vendor.ReviewVendor)
+			admin.POST("/vendors/:id/suspend", h.Vendor.SuspendVendor)
 
 			// Vendor product management
 			admin.POST("/vendors/:vendor_id/products", h.Vendor.CreateProduct)
@@ -289,8 +290,12 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 				}
 				response.Success(c, resp)
 			})
+			vendorGroup.PUT("/profile", h.Vendor.UpdateProfile)
+			vendorGroup.PUT("/products/:id", h.Vendor.UpdateProduct)
 			vendorGroup.GET("/sales", h.Vendor.GetSales)
 			vendorGroup.GET("/settlements", h.Vendor.GetSettlements)
+			vendorGroup.POST("/settlements/:id/confirm", h.Vendor.ConfirmSettlement)
+			vendorGroup.POST("/settlements/:id/withdraw", h.Vendor.RequestWithdrawal)
 		}
 	}
 

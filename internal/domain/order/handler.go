@@ -172,3 +172,38 @@ func (h *Handler) ListAdmin(c *gin.Context) {
 	}
 	response.SuccessPaginated(c, items, total, query.Page, query.PageSize)
 }
+
+// POST /api/admin/orders/:id/refund - Admin approve/reject refund
+func (h *Handler) AdminRefund(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid order id")
+		return
+	}
+
+	adminID, _ := c.Get("user_id")
+
+	var req struct {
+		Approved bool   `json:"approved"`
+		Reason   string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.AdminRefund(uint(id), adminID.(uint), req.Approved, req.Reason); err != nil {
+		if err.Error() == "order is not in refunding status" {
+			response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+
+	status := "refunded"
+	if !req.Approved {
+		status = "refund_rejected"
+	}
+	response.Success(c, gin.H{"message": "refund " + status})
+}

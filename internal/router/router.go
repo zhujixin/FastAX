@@ -109,6 +109,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 	{
 		// Public routes
 		api.GET("/tokens/products", h.Token.GetProducts)
+		api.GET("/tokens/products/:id", h.Token.GetProduct)
 		api.GET("/models", h.Market.ListModels)
 		api.GET("/providers/health", h.Market.ListProviders)
 		api.GET("/providers/:id/health", h.Market.GetProviderHealth)
@@ -139,6 +140,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			protected.GET("/user/me", h.User.GetUser)
 			protected.PUT("/user/language", h.User.UpdateLanguage)
 			protected.GET("/tokens/my", h.Token.GetMyTokens)
+			protected.GET("/tokens/my/usage", h.Token.GetUsageHistory)
 			protected.POST("/tokens/buy", h.Token.Buy)
 			protected.POST("/tokens/transfer", h.Token.Transfer)
 			protected.POST("/tokens/extract", h.Token.Extract)
@@ -220,6 +222,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.GET("/users", h.User.ListUsers)
 			admin.PUT("/users/:id/status", h.User.SetUserStatus)
 			admin.GET("/orders", h.Order.ListAdmin)
+			admin.POST("/orders/:id/refund", h.Order.AdminRefund)
 
 			// Supplier management
 			admin.POST("/suppliers", h.Vendor.CreateSupplier)

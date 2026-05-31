@@ -20,17 +20,23 @@ func NewService(db *gorm.DB) *Service {
 }
 
 type ProductResponse struct {
-	ID            uint   `json:"id"`
-	SupplierID    uint   `json:"supplier_id"`
-	Name          string `json:"name"`
-	Model         string `json:"model"`
-	Unit          string `json:"unit"`
-	Price         string `json:"price"`
-	OriginalPrice string `json:"original_price,omitempty"`
-	Currency      string `json:"currency"`
-	Description   string `json:"description,omitempty"`
-	ValidityDays  *int   `json:"validity_days,omitempty"`
-	Status        int    `json:"status"`
+	ID              uint   `json:"id"`
+	SupplierID      uint   `json:"supplier_id"`
+	SupplierName    string `json:"supplier_name,omitempty"`
+	Name            string `json:"name"`
+	NameI18n        string `json:"name_i18n,omitempty"`
+	Model           string `json:"model"`
+	Type            string `json:"type,omitempty"`
+	Unit            string `json:"unit"`
+	Price           string `json:"price"`
+	OriginalPrice   string `json:"original_price,omitempty"`
+	Currency        string `json:"currency"`
+	Description     string `json:"description,omitempty"`
+	DescriptionI18n string `json:"description_i18n,omitempty"`
+	ValidityDays    *int   `json:"validity_days,omitempty"`
+	UsageNotes      string `json:"usage_notes,omitempty"`
+	SortOrder       int    `json:"sort_order,omitempty"`
+	Status          int    `json:"status"`
 }
 
 type UserTokenResponse struct {
@@ -66,20 +72,63 @@ func (s *Service) GetProducts() ([]ProductResponse, error) {
 	result := make([]ProductResponse, len(products))
 	for i, p := range products {
 		result[i] = ProductResponse{
-			ID:            p.ID,
-			SupplierID:    p.SupplierID,
-			Name:          p.Name,
-			Model:         p.Model,
-			Unit:          p.Unit,
-			Price:         p.Price,
-			OriginalPrice: p.OriginalPrice,
-			Currency:      p.Currency,
-			Description:   p.Description,
-			ValidityDays:  p.ValidityDays,
-			Status:        p.Status,
+			ID:              p.ID,
+			SupplierID:      p.SupplierID,
+			Name:            p.Name,
+			NameI18n:        p.NameI18n,
+			Model:           p.Model,
+			Type:            p.Type,
+			Unit:            p.Unit,
+			Price:           p.Price,
+			OriginalPrice:   p.OriginalPrice,
+			Currency:        p.Currency,
+			Description:     p.Description,
+			DescriptionI18n: p.DescriptionI18n,
+			ValidityDays:    p.ValidityDays,
+			UsageNotes:      p.UsageNotes,
+			SortOrder:       p.SortOrder,
+			Status:          p.Status,
 		}
 	}
 	return result, nil
+}
+
+// GetProduct returns a single product by ID with supplier info.
+func (s *Service) GetProduct(id uint) (*ProductResponse, error) {
+	var product model.TokenProduct
+	if err := s.db.First(&product, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("product not found")
+		}
+		return nil, fmt.Errorf("query product: %w", err)
+	}
+
+	// Get supplier name
+	supplierName := ""
+	var supplier model.Supplier
+	if err := s.db.First(&supplier, product.SupplierID).Error; err == nil {
+		supplierName = supplier.Name
+	}
+
+	return &ProductResponse{
+		ID:              product.ID,
+		SupplierID:      product.SupplierID,
+		SupplierName:    supplierName,
+		Name:            product.Name,
+		NameI18n:        product.NameI18n,
+		Model:           product.Model,
+		Type:            product.Type,
+		Unit:            product.Unit,
+		Price:           product.Price,
+		OriginalPrice:   product.OriginalPrice,
+		Currency:        product.Currency,
+		Description:     product.Description,
+		DescriptionI18n: product.DescriptionI18n,
+		ValidityDays:    product.ValidityDays,
+		UsageNotes:      product.UsageNotes,
+		SortOrder:       product.SortOrder,
+		Status:          product.Status,
+	}, nil
 }
 
 func (s *Service) GetUserTokens(userID uint) ([]UserTokenResponse, error) {
@@ -390,4 +439,54 @@ func generateOrderNo() string {
 	b := make([]byte, 8)
 	rand.Read(b)
 	return fmt.Sprintf("ORD%s", hex.EncodeToString(b))
+}
+
+// ---------- Usage History ----------
+
+type UsageRecord struct {
+	ID          uint   `json:"id"`
+	TraceID     string `json:"trace_id"`
+	Model       string `json:"model"`
+	TokensTotal int    `json:"tokens_total"`
+	Status      string `json:"status"`
+	CreatedAt   string `json:"created_at"`
+}
+
+// GetUsageHistory returns paginated call logs for the user.
+func (s *Service) GetUsageHistory(userID uint, page, pageSize int) ([]UsageRecord, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	query := s.db.Model(&model.CallLog{}).Where("user_id = ?", userID)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count usage: %w", err)
+	}
+
+	var logs []model.CallLog
+	if err := query.Order("created_at desc").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&logs).Error; err != nil {
+		return nil, 0, fmt.Errorf("query usage: %w", err)
+	}
+
+	records := make([]UsageRecord, len(logs))
+	for i, l := range logs {
+		records[i] = UsageRecord{
+			ID:          l.ID,
+			TraceID:     l.TraceID,
+			Model:       l.RequestModel,
+			TokensTotal: l.TokensTotal,
+			Status:      l.Status,
+			CreatedAt:   l.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return records, total, nil
 }

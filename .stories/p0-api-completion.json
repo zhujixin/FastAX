@@ -1,0 +1,67 @@
+{
+  "feature": "P0 API补全",
+  "description": "补全PDD定义的P0级别API：商品详情、使用记录、退款审核",
+  "stories": [
+    {
+      "id": "API-01",
+      "title": "Token商品详情API",
+      "description": "实现GET /api/tokens/products/:id，返回单个商品详细信息",
+      "acceptance_criteria": [
+        "token.Service 新增 GetProduct(id) 方法",
+        "返回商品完整信息包含供应商信息",
+        "商品不存在时返回404",
+        "router 注册 GET /api/tokens/products/:id",
+        "有单元测试验证商品详情查询",
+        "go test ./internal/domain/token/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "API-02",
+      "title": "Token使用记录API",
+      "description": "实现GET /api/tokens/my/usage，返回用户的Token使用记录",
+      "acceptance_criteria": [
+        "token.Service 新增 GetUsageHistory(userID, page, pageSize) 方法",
+        "从call_log表查询用户的调用记录",
+        "支持分页查询",
+        "返回数据包含: 模型、Token数量、请求时间、状态",
+        "router 注册 GET /api/tokens/my/usage",
+        "有单元测试验证使用记录查询",
+        "go test ./internal/domain/token/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "API-03",
+      "title": "管理员退款审核API",
+      "description": "实现POST /api/admin/orders/:id/refund，管理员审核退款申请",
+      "acceptance_criteria": [
+        "order.Service 新增 AdminRefund(orderID, adminID, approved, reason) 方法",
+        "审核通过时更新订单状态为refunded",
+        "审核拒绝时更新退款状态为rejected",
+        "router 注册 POST /api/admin/orders/:id/refund",
+        "需要admin权限",
+        "有单元测试验证退款审核流程",
+        "go test ./internal/domain/order/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    },
+    {
+      "id": "API-04",
+      "title": "Token商品详情公开API",
+      "description": "实现GET /api/tokens/products/:id，公开接口无需认证",
+      "acceptance_criteria": [
+        "商品详情接口在public routes中注册",
+        "返回商品信息包含多语言字段",
+        "支持供应商信息关联查询",
+        "有单元测试验证公开访问",
+        "go test ./internal/domain/token/... 通过"
+      ],
+      "status": "done",
+      "priority": "P0"
+    }
+  ]
+}

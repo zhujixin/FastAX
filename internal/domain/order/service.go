@@ -273,3 +273,39 @@ func toOrderResponse(o *model.Order) *OrderResponse {
 		UpdatedAt:      o.UpdatedAt,
 	}
 }
+
+// AdminRefund handles admin refund approval/rejection.
+func (s *Service) AdminRefund(orderID, adminID uint, approved bool, reason string) error {
+	// Get order
+	var order model.Order
+	if err := s.db.First(&order, orderID).Error; err != nil {
+		return fmt.Errorf("order not found: %w", err)
+	}
+
+	// Check order is in refunding status
+	if order.Status != "refunding" {
+		return errors.New("order is not in refunding status")
+	}
+
+	if approved {
+		// Approve refund: update order status to refunded
+		result := s.db.Model(&order).Updates(map[string]interface{}{
+			"status": "refunded",
+			"remark": reason,
+		})
+		if result.Error != nil {
+			return fmt.Errorf("update order: %w", result.Error)
+		}
+	} else {
+		// Reject refund: revert order status to paid
+		result := s.db.Model(&order).Updates(map[string]interface{}{
+			"status": "paid",
+			"remark": reason,
+		})
+		if result.Error != nil {
+			return fmt.Errorf("update order: %w", result.Error)
+		}
+	}
+
+	return nil
+}

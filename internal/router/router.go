@@ -130,6 +130,9 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			auth.POST("/refresh", h.User.RefreshToken)
 			auth.POST("/send-code", h.User.SendCode)
 			auth.POST("/reset-password", h.User.ResetPassword)
+			auth.GET("/oauth/:provider", h.User.OAuthRedirect)
+			auth.GET("/oauth/callback", h.User.OAuthCallback)
+			auth.POST("/oauth/login", h.User.OAuthLogin)
 		}
 
 		// Protected routes
@@ -289,6 +292,16 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.POST("/i18n/languages", h.I18n.CreateLanguage)
 			admin.PUT("/i18n/languages/:locale", h.I18n.UpdateLanguage)
 			admin.PUT("/i18n/default", h.I18n.SetDefaultLanguage)
+
+			// SSO management
+			admin.GET("/sso/config", h.Enterprise.GetSSOConfig)
+			admin.PUT("/sso/config", h.Enterprise.UpdateSSOConfig)
+
+			// Team management
+			admin.GET("/teams", h.Enterprise.ListTeams)
+			admin.POST("/teams", h.Enterprise.CreateTeam)
+			admin.PUT("/teams/:id", h.Enterprise.UpdateTeam)
+			admin.DELETE("/teams/:id", h.Enterprise.DeleteTeam)
 		}
 
 		// Vendor self-service (protected)

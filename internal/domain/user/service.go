@@ -406,3 +406,78 @@ func (s *Service) GetUserDetail(id uint) (*UserDetailResponse, error) {
 		CreatedAt:     user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
+
+// ---------- OAuth ----------
+
+type OAuthConfig struct {
+	GoogleClientID     string
+	GoogleClientSecret string
+	GitHubClientID     string
+	GitHubClientSecret string
+}
+
+type OAuthUserInfo struct {
+	Provider    string
+	ProviderID  string
+	Email       string
+	Name        string
+	Avatar      string
+}
+
+type OAuthLoginRequest struct {
+	Provider string `json:"provider" binding:"required,oneof=google github"`
+	Code     string `json:"code" binding:"required"`
+}
+
+// OAuthLogin handles OAuth login flow.
+func (s *Service) OAuthLogin(req *OAuthLoginRequest) (*LoginResponse, error) {
+	// In production, exchange code for token and get user info from provider
+	// For MVP, simulate OAuth user info
+	userInfo := &OAuthUserInfo{
+		Provider:   req.Provider,
+		ProviderID: fmt.Sprintf("%s_%s", req.Provider, req.Code),
+		Email:      fmt.Sprintf("%s_user@example.com", req.Provider),
+		Name:       fmt.Sprintf("%s User", req.Provider),
+	}
+
+	// Find existing user by OAuth provider info
+	var user model.User
+	err := s.db.Where("email = ?", userInfo.Email).First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Create new user
+		user = model.User{
+			Username:          userInfo.Name,
+			Email:             userInfo.Email,
+			Role:              "user",
+			Level:             "normal",
+			Status:            1,
+			PreferredLanguage: "en",
+		}
+		if err := s.db.Create(&user).Error; err != nil {
+			return nil, fmt.Errorf("create oauth user: %w", err)
+		}
+	} else if err != nil {
+		return nil, fmt.Errorf("query user: %w", err)
+	}
+
+	// Check if user is frozen
+	if user.Status == 0 {
+		return nil, errors.New("account is frozen")
+	}
+
+	// Generate tokens
+	return s.generateTokens(&user)
+}
+
+// GetOAuthRedirectURL returns the OAuth redirect URL for a provider.
+func (s *Service) GetOAuthRedirectURL(provider, callbackURL string) (string, error) {
+	switch provider {
+	case "google":
+		return fmt.Sprintf("https://accounts.google.com/o/oauth2/v2/auth?client_id=GOOGLE_CLIENT_ID&redirect_uri=%s&response_type=code&scope=email%%20profile", callbackURL), nil
+	case "github":
+		return fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=GITHUB_CLIENT_ID&redirect_uri=%s&scope=user:email", callbackURL), nil
+	default:
+		return "", fmt.Errorf("unsupported provider: %s", provider)
+	}
+}

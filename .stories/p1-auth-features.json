@@ -1,0 +1,56 @@
+{
+  "feature": "P1 认证功能增强",
+  "description": "补全P1级别的认证功能：OAuth登录、SSO配置",
+  "stories": [
+    {
+      "id": "AUTH-01",
+      "title": "OAuth登录支持",
+      "description": "实现OAuth登录流程，支持Google、GitHub等第三方登录",
+      "acceptance_criteria": [
+        "user.Service 新增 OAuthLogin(provider, code) 方法",
+        "支持Google和GitHub OAuth provider",
+        "OAuth用户自动创建或关联已有账号",
+        "router 注册 GET /api/auth/oauth/:provider",
+        "router 注册 GET /api/auth/oauth/callback",
+        "有单元测试验证OAuth登录流程",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "AUTH-02",
+      "title": "SSO配置管理API",
+      "description": "实现企业SSO配置管理功能",
+      "acceptance_criteria": [
+        "enterprise.Service 新增 GetSSOConfig() 方法",
+        "enterprise.Service 新增 UpdateSSOConfig(req) 方法",
+        "支持SAML和OIDC两种SSO协议",
+        "router 注册 GET /api/admin/sso/config",
+        "router 注册 PUT /api/admin/sso/config",
+        "需要admin权限",
+        "有单元测试验证SSO配置管理",
+        "go test ./internal/domain/enterprise/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "AUTH-03",
+      "title": "团队管理API",
+      "description": "实现企业团队管理功能",
+      "acceptance_criteria": [
+        "enterprise.Service 新增 CreateTeam(req) 方法",
+        "enterprise.Service 新增 ListTeams() 方法",
+        "enterprise.Service 新增 UpdateTeam(id, req) 方法",
+        "enterprise.Service 新增 DeleteTeam(id) 方法",
+        "router 注册 /api/admin/teams (GET/POST/PUT/DELETE)",
+        "需要admin权限",
+        "有单元测试验证团队管理",
+        "go test ./internal/domain/enterprise/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    }
+  ]
+}

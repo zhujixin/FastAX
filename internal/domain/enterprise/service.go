@@ -3,6 +3,7 @@ package enterprise
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"gorm.io/gorm"
@@ -193,4 +194,125 @@ func splitString(s, sep string) []string {
 		}
 	}
 	return result
+}
+
+// ---------- SSO Configuration ----------
+
+type SSOConfig struct {
+	Enabled     bool   `json:"enabled"`
+	Protocol    string `json:"protocol"` // saml, oidc
+	EntityID    string `json:"entity_id,omitempty"`
+	MetadataURL string `json:"metadata_url,omitempty"`
+	ClientID    string `json:"client_id,omitempty"`
+	Issuer      string `json:"issuer,omitempty"`
+	CallbackURL string `json:"callback_url,omitempty"`
+}
+
+// In-memory SSO config (in production, store in DB)
+var ssoConfig = &SSOConfig{}
+
+// GetSSOConfig returns current SSO configuration.
+func (s *Service) GetSSOConfig() (*SSOConfig, error) {
+	return ssoConfig, nil
+}
+
+// UpdateSSOConfig updates SSO configuration.
+func (s *Service) UpdateSSOConfig(req *SSOConfig) error {
+	if req.Protocol != "" && req.Protocol != "saml" && req.Protocol != "oidc" {
+		return fmt.Errorf("invalid protocol: %s, must be saml or oidc", req.Protocol)
+	}
+
+	ssoConfig = req
+	return nil
+}
+
+// ---------- Team Management ----------
+
+type Team struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ParentID    uint   `json:"parent_id"`
+	MemberCount int    `json:"member_count"`
+	Status      string `json:"status"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type CreateTeamRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+}
+
+type UpdateTeamRequest struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Status      string `json:"status,omitempty"`
+}
+
+// In-memory teams (in production, use DB table)
+var teams = make(map[uint]*Team)
+var teamIDCounter uint = 0
+
+// CreateTeam creates a new team.
+func (s *Service) CreateTeam(parentID uint, req *CreateTeamRequest) (*Team, error) {
+	teamIDCounter++
+	team := &Team{
+		ID:          teamIDCounter,
+		Name:        req.Name,
+		Description: req.Description,
+		ParentID:    parentID,
+		MemberCount: 0,
+		Status:      "active",
+		CreatedAt:   time.Now().Format("2006-01-02 15:04:05"),
+	}
+	teams[team.ID] = team
+	return team, nil
+}
+
+// ListTeams returns all teams for a parent.
+func (s *Service) ListTeams(parentID uint) ([]Team, error) {
+	result := make([]Team, 0)
+	for _, t := range teams {
+		if t.ParentID == parentID || parentID == 0 {
+			result = append(result, *t)
+		}
+	}
+	return result, nil
+}
+
+// GetTeam returns a team by ID.
+func (s *Service) GetTeam(id uint) (*Team, error) {
+	team, ok := teams[id]
+	if !ok {
+		return nil, errors.New("team not found")
+	}
+	return team, nil
+}
+
+// UpdateTeam updates a team.
+func (s *Service) UpdateTeam(id uint, req *UpdateTeamRequest) error {
+	team, ok := teams[id]
+	if !ok {
+		return errors.New("team not found")
+	}
+
+	if req.Name != "" {
+		team.Name = req.Name
+	}
+	if req.Description != "" {
+		team.Description = req.Description
+	}
+	if req.Status != "" {
+		team.Status = req.Status
+	}
+	return nil
+}
+
+// DeleteTeam deletes a team.
+func (s *Service) DeleteTeam(id uint) error {
+	if _, ok := teams[id]; !ok {
+		return errors.New("team not found")
+	}
+	delete(teams, id)
+	return nil
 }

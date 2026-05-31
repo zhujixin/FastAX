@@ -146,3 +146,104 @@ func (h *Handler) GetSubAccountUsage(c *gin.Context) {
 	}
 	response.Success(c, stats)
 }
+
+// --- SSO Configuration ---
+
+// GET /api/admin/sso/config
+func (h *Handler) GetSSOConfig(c *gin.Context) {
+	config, err := h.svc.GetSSOConfig()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, config)
+}
+
+// PUT /api/admin/sso/config
+func (h *Handler) UpdateSSOConfig(c *gin.Context) {
+	var req SSOConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.UpdateSSOConfig(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "SSO config updated"})
+}
+
+// --- Team Management ---
+
+// GET /api/admin/teams
+func (h *Handler) ListTeams(c *gin.Context) {
+	teams, err := h.svc.ListTeams(0)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, teams)
+}
+
+// POST /api/admin/teams
+func (h *Handler) CreateTeam(c *gin.Context) {
+	parentID, _ := c.Get("user_id")
+
+	var req CreateTeamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	team, err := h.svc.CreateTeam(parentID.(uint), &req)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, team)
+}
+
+// PUT /api/admin/teams/:id
+func (h *Handler) UpdateTeam(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid team id")
+		return
+	}
+
+	var req UpdateTeamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.UpdateTeam(uint(id), &req); err != nil {
+		if err.Error() == "team not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "team updated"})
+}
+
+// DELETE /api/admin/teams/:id
+func (h *Handler) DeleteTeam(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid team id")
+		return
+	}
+
+	if err := h.svc.DeleteTeam(uint(id)); err != nil {
+		if err.Error() == "team not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "team deleted"})
+}

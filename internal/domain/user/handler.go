@@ -254,3 +254,67 @@ func (h *Handler) SetUserLevel(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "level updated"})
 }
+
+// --- OAuth ---
+
+// GET /api/auth/oauth/:provider - OAuth redirect
+func (h *Handler) OAuthRedirect(c *gin.Context) {
+	provider := c.Param("provider")
+	callbackURL := c.Query("callback_url")
+	if callbackURL == "" {
+		callbackURL = fmt.Sprintf("%s/api/auth/oauth/callback", c.Request.Host)
+	}
+
+	redirectURL, err := h.svc.GetOAuthRedirectURL(provider, callbackURL)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
+}
+
+// GET /api/auth/oauth/callback - OAuth callback
+func (h *Handler) OAuthCallback(c *gin.Context) {
+	provider := c.Query("provider")
+	code := c.Query("code")
+
+	if provider == "" || code == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "provider and code required")
+		return
+	}
+
+	resp, err := h.svc.OAuthLogin(&OAuthLoginRequest{
+		Provider: provider,
+		Code:     code,
+	})
+	if err != nil {
+		if err.Error() == "account is frozen" {
+			response.Error(c, http.StatusUnauthorized, response.CodeAccountFrozen, err.Error())
+			return
+		}
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}
+
+// POST /api/auth/oauth/login - OAuth login (API)
+func (h *Handler) OAuthLogin(c *gin.Context) {
+	var req OAuthLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	resp, err := h.svc.OAuthLogin(&req)
+	if err != nil {
+		if err.Error() == "account is frozen" {
+			response.Error(c, http.StatusUnauthorized, response.CodeAccountFrozen, err.Error())
+			return
+		}
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}

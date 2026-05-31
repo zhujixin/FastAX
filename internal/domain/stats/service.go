@@ -351,3 +351,128 @@ func parseFloat(s string) float64 {
 	fmt.Sscanf(s, "%f", &f)
 	return f
 }
+
+// ---------- Reports ----------
+
+type DailyReport struct {
+	Date          string `json:"date"`
+	NewUsers      int64  `json:"new_users"`
+	NewOrders     int64  `json:"new_orders"`
+	Revenue       string `json:"revenue"`
+	TokensUsed    int64  `json:"tokens_used"`
+	ActiveUsers   int64  `json:"active_users"`
+}
+
+type MonthlyReport struct {
+	Year          int            `json:"year"`
+	Month         int            `json:"month"`
+	TotalUsers    int64          `json:"total_users"`
+	NewUsers      int64          `json:"new_users"`
+	TotalOrders   int64          `json:"total_orders"`
+	TotalRevenue  string         `json:"total_revenue"`
+	TokensUsed    int64          `json:"tokens_used"`
+	DailyBreakdown []DailyReport `json:"daily_breakdown"`
+}
+
+// GetDailyReport returns daily statistics for a given date.
+func (s *Service) GetDailyReport(date string) (*DailyReport, error) {
+	// Parse date
+	t, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %s, use YYYY-MM-DD", date)
+	}
+
+	dayStart := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	dayEnd := dayStart.AddDate(0, 0, 1)
+
+	report := &DailyReport{Date: date}
+
+	// New users
+	s.db.Model(&model.User{}).
+		Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+		Count(&report.NewUsers)
+
+	// New orders
+	s.db.Model(&model.Order{}).
+		Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+		Count(&report.NewOrders)
+
+	// Revenue
+	var revenue float64
+	s.db.Model(&model.Payment{}).
+		Where("status = ? AND created_at >= ? AND created_at < ?", "success", dayStart, dayEnd).
+		Select("COALESCE(SUM(CAST(amount AS REAL)), 0)").
+		Row().Scan(&revenue)
+	report.Revenue = fmt.Sprintf("%.2f", revenue)
+
+	// Tokens used
+	s.db.Model(&model.CallLog{}).
+		Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+		Select("COALESCE(SUM(tokens_total), 0)").
+		Row().Scan(&report.TokensUsed)
+
+	// Active users (users who made API calls)
+	s.db.Model(&model.CallLog{}).
+		Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+		Select("COUNT(DISTINCT user_id)").
+		Row().Scan(&report.ActiveUsers)
+
+	return report, nil
+}
+
+// GetMonthlyReport returns monthly statistics with daily breakdown.
+func (s *Service) GetMonthlyReport(year, month int) (*MonthlyReport, error) {
+	if month < 1 || month > 12 {
+		return nil, fmt.Errorf("invalid month: %d", month)
+	}
+
+	monthStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	monthEnd := monthStart.AddDate(0, 1, 0)
+
+	report := &MonthlyReport{
+		Year:  year,
+		Month: month,
+	}
+
+	// Total users at end of month
+	s.db.Model(&model.User{}).
+		Where("created_at < ?", monthEnd).
+		Count(&report.TotalUsers)
+
+	// New users this month
+	s.db.Model(&model.User{}).
+		Where("created_at >= ? AND created_at < ?", monthStart, monthEnd).
+		Count(&report.NewUsers)
+
+	// Total orders this month
+	s.db.Model(&model.Order{}).
+		Where("created_at >= ? AND created_at < ?", monthStart, monthEnd).
+		Count(&report.TotalOrders)
+
+	// Total revenue this month
+	var revenue float64
+	s.db.Model(&model.Payment{}).
+		Where("status = ? AND created_at >= ? AND created_at < ?", "success", monthStart, monthEnd).
+		Select("COALESCE(SUM(CAST(amount AS REAL)), 0)").
+		Row().Scan(&revenue)
+	report.TotalRevenue = fmt.Sprintf("%.2f", revenue)
+
+	// Tokens used this month
+	s.db.Model(&model.CallLog{}).
+		Where("created_at >= ? AND created_at < ?", monthStart, monthEnd).
+		Select("COALESCE(SUM(tokens_total), 0)").
+		Row().Scan(&report.TokensUsed)
+
+	// Daily breakdown
+	report.DailyBreakdown = make([]DailyReport, 0)
+	for d := monthStart; d.Before(monthEnd); d = d.AddDate(0, 0, 1) {
+		dateStr := d.Format("2006-01-02")
+		daily, err := s.GetDailyReport(dateStr)
+		if err != nil {
+			continue
+		}
+		report.DailyBreakdown = append(report.DailyBreakdown, *daily)
+	}
+
+	return report, nil
+}

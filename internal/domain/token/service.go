@@ -490,3 +490,149 @@ func (s *Service) GetUsageHistory(userID uint, page, pageSize int) ([]UsageRecor
 
 	return records, total, nil
 }
+
+// ---------- Admin Product Management ----------
+
+type CreateProductRequest struct {
+	SupplierID    uint   `json:"supplier_id" binding:"required"`
+	Name          string `json:"name" binding:"required"`
+	NameI18n      string `json:"name_i18n,omitempty"`
+	Model         string `json:"model" binding:"required"`
+	Type          string `json:"type" binding:"required"`
+	Unit          string `json:"unit" binding:"required"`
+	Price         string `json:"price" binding:"required"`
+	OriginalPrice string `json:"original_price,omitempty"`
+	Currency      string `json:"currency"`
+	Description   string `json:"description,omitempty"`
+	DescriptionI18n string `json:"description_i18n,omitempty"`
+	ValidityDays  *int   `json:"validity_days,omitempty"`
+	UsageNotes    string `json:"usage_notes,omitempty"`
+	SortOrder     int    `json:"sort_order,omitempty"`
+}
+
+type UpdateProductRequest struct {
+	Name          string `json:"name,omitempty"`
+	NameI18n      string `json:"name_i18n,omitempty"`
+	Price         string `json:"price,omitempty"`
+	OriginalPrice string `json:"original_price,omitempty"`
+	Currency      string `json:"currency,omitempty"`
+	Description   string `json:"description,omitempty"`
+	DescriptionI18n string `json:"description_i18n,omitempty"`
+	ValidityDays  *int   `json:"validity_days,omitempty"`
+	UsageNotes    string `json:"usage_notes,omitempty"`
+	SortOrder     *int   `json:"sort_order,omitempty"`
+	Status        *int   `json:"status,omitempty"`
+}
+
+// CreateProduct creates a new token product (admin).
+func (s *Service) CreateProduct(req *CreateProductRequest) (*ProductResponse, error) {
+	currency := req.Currency
+	if currency == "" {
+		currency = "CNY"
+	}
+
+	product := model.TokenProduct{
+		SupplierID:      req.SupplierID,
+		Name:            req.Name,
+		NameI18n:        req.NameI18n,
+		Model:           req.Model,
+		Type:            req.Type,
+		Unit:            req.Unit,
+		Price:           req.Price,
+		OriginalPrice:   req.OriginalPrice,
+		Currency:        currency,
+		Description:     req.Description,
+		DescriptionI18n: req.DescriptionI18n,
+		ValidityDays:    req.ValidityDays,
+		UsageNotes:      req.UsageNotes,
+		SortOrder:       req.SortOrder,
+		Status:          1,
+	}
+
+	if err := s.db.Create(&product).Error; err != nil {
+		return nil, fmt.Errorf("create product: %w", err)
+	}
+
+	// Get supplier name
+	supplierName := ""
+	var supplier model.Supplier
+	if err := s.db.First(&supplier, product.SupplierID).Error; err == nil {
+		supplierName = supplier.Name
+	}
+
+	return &ProductResponse{
+		ID:              product.ID,
+		SupplierID:      product.SupplierID,
+		SupplierName:    supplierName,
+		Name:            product.Name,
+		NameI18n:        product.NameI18n,
+		Model:           product.Model,
+		Type:            product.Type,
+		Unit:            product.Unit,
+		Price:           product.Price,
+		OriginalPrice:   product.OriginalPrice,
+		Currency:        product.Currency,
+		Description:     product.Description,
+		DescriptionI18n: product.DescriptionI18n,
+		ValidityDays:    product.ValidityDays,
+		UsageNotes:      product.UsageNotes,
+		SortOrder:       product.SortOrder,
+		Status:          product.Status,
+	}, nil
+}
+
+// UpdateProduct updates a token product (admin).
+func (s *Service) UpdateProduct(id uint, req *UpdateProductRequest) error {
+	var product model.TokenProduct
+	if err := s.db.First(&product, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("product not found")
+		}
+		return fmt.Errorf("query product: %w", err)
+	}
+
+	updates := make(map[string]interface{})
+	if req.Name != "" {
+		updates["name"] = req.Name
+	}
+	if req.NameI18n != "" {
+		updates["name_i18n"] = req.NameI18n
+	}
+	if req.Price != "" {
+		updates["price"] = req.Price
+	}
+	if req.OriginalPrice != "" {
+		updates["original_price"] = req.OriginalPrice
+	}
+	if req.Currency != "" {
+		updates["currency"] = req.Currency
+	}
+	if req.Description != "" {
+		updates["description"] = req.Description
+	}
+	if req.DescriptionI18n != "" {
+		updates["description_i18n"] = req.DescriptionI18n
+	}
+	if req.ValidityDays != nil {
+		updates["validity_days"] = *req.ValidityDays
+	}
+	if req.UsageNotes != "" {
+		updates["usage_notes"] = req.UsageNotes
+	}
+	if req.SortOrder != nil {
+		updates["sort_order"] = *req.SortOrder
+	}
+	if req.Status != nil {
+		updates["status"] = *req.Status
+	}
+
+	if len(updates) == 0 {
+		return errors.New("no fields to update")
+	}
+
+	if err := s.db.Model(&product).Updates(updates).Error; err != nil {
+		return fmt.Errorf("update product: %w", err)
+	}
+
+	return nil
+}

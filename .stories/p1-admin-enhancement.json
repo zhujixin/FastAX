@@ -1,0 +1,99 @@
+{
+  "feature": "P1 管理后台增强",
+  "description": "补全管理后台的P1级别功能：用户详情、商品管理、报表、黑名单",
+  "stories": [
+    {
+      "id": "ADMIN-06",
+      "title": "用户详情API",
+      "description": "实现GET /api/admin/users/:id，返回用户详细信息",
+      "acceptance_criteria": [
+        "user.Service 新增 GetUserDetail(id) 方法",
+        "返回用户基本信息、Token余额、订单统计",
+        "用户不存在时返回404",
+        "router 注册 GET /api/admin/users/:id",
+        "需要admin权限",
+        "有单元测试验证用户详情查询",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "ADMIN-07",
+      "title": "用户等级修改API",
+      "description": "实现PUT /api/admin/users/:id/level，修改用户等级",
+      "acceptance_criteria": [
+        "user.Service 新增 SetUserLevel(id, level) 方法",
+        "支持等级: normal, vip, enterprise",
+        "router 注册 PUT /api/admin/users/:id/level",
+        "需要admin权限",
+        "有单元测试验证用户等级修改",
+        "go test ./internal/domain/user/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "ADMIN-08",
+      "title": "管理员商品管理API",
+      "description": "实现管理员Token商品的CRUD操作",
+      "acceptance_criteria": [
+        "token.Service 新增 CreateProduct(req) 方法",
+        "token.Service 新增 UpdateProduct(id, req) 方法",
+        "router 注册 POST /api/admin/products",
+        "router 注册 PUT /api/admin/products/:id",
+        "需要admin权限",
+        "有单元测试验证商品管理",
+        "go test ./internal/domain/token/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "ADMIN-09",
+      "title": "日报表API",
+      "description": "实现GET /api/admin/reports/daily，返回每日统计报表",
+      "acceptance_criteria": [
+        "stats.Service 新增 GetDailyReport(date) 方法",
+        "返回: 新增用户、新增订单、营收、Token消耗",
+        "router 注册 GET /api/admin/reports/daily",
+        "需要admin权限",
+        "有单元测试验证日报表",
+        "go test ./internal/domain/stats/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "ADMIN-10",
+      "title": "月报表API",
+      "description": "实现GET /api/admin/reports/monthly，返回每月统计报表",
+      "acceptance_criteria": [
+        "stats.Service 新增 GetMonthlyReport(year, month) 方法",
+        "返回: 月度汇总、每日明细、环比增长",
+        "router 注册 GET /api/admin/reports/monthly",
+        "需要admin权限",
+        "有单元测试验证月报表",
+        "go test ./internal/domain/stats/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    },
+    {
+      "id": "ADMIN-11",
+      "title": "黑名单管理API",
+      "description": "实现风控黑名单的管理功能",
+      "acceptance_criteria": [
+        "risk.Service 新增 AddBlacklist(req) 方法",
+        "risk.Service 新增 ListBlacklist() 方法",
+        "router 注册 GET /api/admin/risk/blacklist",
+        "router 注册 POST /api/admin/risk/blacklist",
+        "需要admin权限",
+        "有单元测试验证黑名单管理",
+        "go test ./internal/domain/risk/... 通过"
+      ],
+      "status": "done",
+      "priority": "P1"
+    }
+  ]
+}

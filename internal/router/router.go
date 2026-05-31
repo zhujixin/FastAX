@@ -220,9 +220,19 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		{
 			admin.GET("/dashboard/summary", h.Stats.GetDashboardSummary)
 			admin.GET("/users", h.User.ListUsers)
+			admin.GET("/users/:id", h.User.GetUserDetail)
 			admin.PUT("/users/:id/status", h.User.SetUserStatus)
+			admin.PUT("/users/:id/level", h.User.SetUserLevel)
 			admin.GET("/orders", h.Order.ListAdmin)
 			admin.POST("/orders/:id/refund", h.Order.AdminRefund)
+
+			// Product management
+			admin.POST("/products", h.Token.CreateProduct)
+			admin.PUT("/products/:id", h.Token.UpdateProduct)
+
+			// Reports
+			admin.GET("/reports/daily", h.Stats.GetDailyReport)
+			admin.GET("/reports/monthly", h.Stats.GetMonthlyReport)
 
 			// Supplier management
 			admin.POST("/suppliers", h.Vendor.CreateSupplier)
@@ -248,6 +258,11 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.PUT("/risk/rules/:id/enabled", h.Risk.SetRuleEnabled)
 			admin.GET("/risk/events", h.Risk.ListEvents)
 			admin.PUT("/risk/events/:id/handle", h.Risk.HandleEvent)
+
+			// Blacklist management
+			admin.GET("/risk/blacklist", h.Risk.ListBlacklist)
+			admin.POST("/risk/blacklist", h.Risk.AddBlacklist)
+			admin.DELETE("/risk/blacklist/:id", h.Risk.RemoveBlacklist)
 
 			// Commission management
 			admin.POST("/commissions/:id/settle", h.Commission.Settle)

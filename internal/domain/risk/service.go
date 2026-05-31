@@ -179,3 +179,103 @@ func (s *Service) DetectRapidAPI(userID uint, limit int) bool {
 		Count(&count)
 	return int(count) > limit
 }
+
+// ---------- Blacklist ----------
+
+type BlacklistEntry struct {
+	ID        uint   `json:"id"`
+	Type      string `json:"type"` // ip, user_id, email
+	Value     string `json:"value"`
+	Reason    string `json:"reason"`
+	CreatedAt string `json:"created_at"`
+}
+
+type AddBlacklistRequest struct {
+	Type   string `json:"type" binding:"required,oneof=ip user_id email"`
+	Value  string `json:"value" binding:"required"`
+	Reason string `json:"reason"`
+}
+
+// AddBlacklist adds an entry to the blacklist (using risk rules).
+func (s *Service) AddBlacklist(req *AddBlacklistRequest) error {
+	// Create a disabled rule as blacklist entry
+	rule := model.RiskRule{
+		Name:       fmt.Sprintf("blacklist_%s_%s", req.Type, req.Value),
+		Category:   "blacklist",
+		Conditions: fmt.Sprintf(`{"type":"%s","value":"%s"}`, req.Type, req.Value),
+		Action:     "block",
+		RiskLevel:  "L4",
+		Enabled:    0, // Disabled by default, just for record
+	}
+	if err := s.db.Create(&rule).Error; err != nil {
+		return fmt.Errorf("add blacklist: %w", err)
+	}
+	return nil
+}
+
+// ListBlacklist returns all blacklist entries.
+func (s *Service) ListBlacklist() ([]BlacklistEntry, error) {
+	var rules []model.RiskRule
+	if err := s.db.Where("category = ?", "blacklist").Order("id desc").Find(&rules).Error; err != nil {
+		return nil, fmt.Errorf("list blacklist: %w", err)
+	}
+
+	entries := make([]BlacklistEntry, len(rules))
+	for i, r := range rules {
+		entries[i] = BlacklistEntry{
+			ID:        r.ID,
+			Type:      extractBlacklistType(r.Conditions),
+			Value:     extractBlacklistValue(r.Conditions),
+			Reason:    r.Name,
+			CreatedAt: r.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+	return entries, nil
+}
+
+// RemoveBlacklist removes a blacklist entry.
+func (s *Service) RemoveBlacklist(id uint) error {
+	result := s.db.Delete(&model.RiskRule{}, id)
+	if result.Error != nil {
+		return fmt.Errorf("remove blacklist: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("blacklist entry not found")
+	}
+	return nil
+}
+
+func extractBlacklistType(condition string) string {
+	// Simple extraction from JSON-like string
+	if len(condition) > 10 {
+		start := 0
+		for i, c := range condition {
+			if c == ':' && i > 0 {
+				start = i + 2
+				break
+			}
+		}
+		for i, c := range condition[start:] {
+			if c == '"' {
+				return condition[start : start+i]
+			}
+		}
+	}
+	return "unknown"
+}
+
+func extractBlacklistValue(condition string) string {
+	// Simple extraction from JSON-like string
+	parts := []byte(condition)
+	lastQuote := -1
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] == '"' {
+			if lastQuote == -1 {
+				lastQuote = i
+			} else {
+				return string(parts[i+1 : lastQuote])
+			}
+		}
+	}
+	return ""
+}

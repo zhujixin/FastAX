@@ -123,3 +123,44 @@ func (h *Handler) Extract(c *gin.Context) {
 	}
 	response.Success(c, resp)
 }
+
+// POST /api/admin/products - Create product (admin)
+func (h *Handler) CreateProduct(c *gin.Context) {
+	var req CreateProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	resp, err := h.svc.CreateProduct(&req)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, resp)
+}
+
+// PUT /api/admin/products/:id - Update product (admin)
+func (h *Handler) UpdateProduct(c *gin.Context) {
+	var id uint
+	if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid product id")
+		return
+	}
+
+	var req UpdateProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.UpdateProduct(id, &req); err != nil {
+		if err.Error() == "product not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "product updated"})
+}

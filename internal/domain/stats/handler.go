@@ -3,6 +3,7 @@ package stats
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/fastax/fastax-server/internal/shared/response"
 	"github.com/gin-gonic/gin"
@@ -86,6 +87,39 @@ func (h *Handler) GetDashboardSummary(c *gin.Context) {
 		return
 	}
 	response.Success(c, resp)
+}
+
+// GET /api/admin/reports/daily?date=2026-05-31
+func (h *Handler) GetDailyReport(c *gin.Context) {
+	date := c.DefaultQuery("date", time.Now().Format("2006-01-02"))
+
+	report, err := h.svc.GetDailyReport(date)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, report)
+}
+
+// GET /api/admin/reports/monthly?year=2026&month=5
+func (h *Handler) GetMonthlyReport(c *gin.Context) {
+	now := time.Now()
+	year := now.Year()
+	month := int(now.Month())
+
+	if y := c.Query("year"); y != "" {
+		fmt.Sscanf(y, "%d", &year)
+	}
+	if m := c.Query("month"); m != "" {
+		fmt.Sscanf(m, "%d", &month)
+	}
+
+	report, err := h.svc.GetMonthlyReport(year, month)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, report)
 }
 
 func parseInt(s string) (int, error) {

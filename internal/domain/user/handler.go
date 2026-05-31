@@ -211,3 +211,46 @@ func (h *Handler) UpdateLanguage(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "language updated"})
 }
+
+// GET /api/admin/users/:id - Get user detail
+func (h *Handler) GetUserDetail(c *gin.Context) {
+	var id uint
+	if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid user id")
+		return
+	}
+
+	detail, err := h.svc.GetUserDetail(id)
+	if err != nil {
+		if err.Error() == "user not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, detail)
+}
+
+// PUT /api/admin/users/:id/level - Set user level
+func (h *Handler) SetUserLevel(c *gin.Context) {
+	var id uint
+	if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid user id")
+		return
+	}
+
+	var req struct {
+		Level string `json:"level" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.SetUserLevel(id, req.Level); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "level updated"})
+}

@@ -106,3 +106,49 @@ func (h *Handler) HandleEvent(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "event handled"})
 }
+
+// --- Blacklist ---
+
+// GET /api/admin/risk/blacklist
+func (h *Handler) ListBlacklist(c *gin.Context) {
+	entries, err := h.svc.ListBlacklist()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, entries)
+}
+
+// POST /api/admin/risk/blacklist
+func (h *Handler) AddBlacklist(c *gin.Context) {
+	var req AddBlacklistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	if err := h.svc.AddBlacklist(&req); err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "blacklist entry added"})
+}
+
+// DELETE /api/admin/risk/blacklist/:id
+func (h *Handler) RemoveBlacklist(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid blacklist id")
+		return
+	}
+
+	if err := h.svc.RemoveBlacklist(uint(id)); err != nil {
+		if err.Error() == "blacklist entry not found" {
+			response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "blacklist entry removed"})
+}

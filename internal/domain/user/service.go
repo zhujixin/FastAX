@@ -334,3 +334,75 @@ func (s *Service) SetUserStatus(id uint, status int) error {
 	}
 	return nil
 }
+
+// SetUserLevel updates user level.
+func (s *Service) SetUserLevel(id uint, level string) error {
+	validLevels := map[string]bool{"normal": true, "vip": true, "enterprise": true}
+	if !validLevels[level] {
+		return fmt.Errorf("invalid level: %s, must be normal/vip/enterprise", level)
+	}
+
+	result := s.db.Model(&model.User{}).Where("id = ?", id).Update("level", level)
+	if result.Error != nil {
+		return fmt.Errorf("update level: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}
+
+// ---------- User Detail ----------
+
+type UserDetailResponse struct {
+	UserResponse
+	TokenBalance  string `json:"token_balance"`
+	TotalOrders   int64  `json:"total_orders"`
+	TotalSpent    string `json:"total_spent"`
+	LastLoginAt   string `json:"last_login_at,omitempty"`
+	CreatedAt     string `json:"created_at"`
+}
+
+// GetUserDetail returns detailed user information for admin.
+func (s *Service) GetUserDetail(id uint) (*UserDetailResponse, error) {
+	var user model.User
+	if err := s.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, fmt.Errorf("query user: %w", err)
+	}
+
+	// Get token balance
+	var tokenBalance float64
+	s.db.Model(&model.UserToken{}).
+		Where("user_id = ? AND status = ?", id, 1).
+		Select("COALESCE(SUM(CAST(total_amount AS REAL)), 0) - COALESCE(SUM(CAST(used_amount AS REAL)), 0)").
+		Row().Scan(&tokenBalance)
+
+	// Get order stats
+	var totalOrders int64
+	s.db.Model(&model.Order{}).Where("user_id = ?", id).Count(&totalOrders)
+
+	var totalSpent float64
+	s.db.Model(&model.Payment{}).
+		Joins("JOIN orders ON orders.id = payments.order_id").
+		Where("orders.user_id = ? AND payments.status = ?", id, "success").
+		Select("COALESCE(SUM(CAST(payments.amount AS REAL)), 0)").
+		Row().Scan(&totalSpent)
+
+	// Format last login
+	lastLogin := ""
+	if user.LastLoginAt != nil {
+		lastLogin = user.LastLoginAt.Format("2006-01-02 15:04:05")
+	}
+
+	return &UserDetailResponse{
+		UserResponse:  *toUserResponse(&user),
+		TokenBalance:  fmt.Sprintf("%.2f", tokenBalance),
+		TotalOrders:   totalOrders,
+		TotalSpent:    fmt.Sprintf("%.2f", totalSpent),
+		LastLoginAt:   lastLogin,
+		CreatedAt:     user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
+}

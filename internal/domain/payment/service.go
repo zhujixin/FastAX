@@ -1,3 +1,13 @@
+// 支付模块业务逻辑层
+//
+// 本文件实现了支付相关的业务逻辑：
+//   - Service: 支付服务结构体
+//   - Create: 创建支付记录
+//   - Callback: 处理支付回调（更新订单状态）
+//   - GetPayment: 获取支付信息
+//   - CreateRefund: 创建退款申请
+//   - ListRefunds: 获取退款列表
+//   - 支付网关集成: 微信支付、支付宝、Stripe
 package payment
 
 import (
@@ -10,10 +20,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 支付服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建支付服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }

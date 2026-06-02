@@ -1,3 +1,10 @@
+// 国际化业务逻辑层
+//
+// 本文件实现了国际化相关的业务逻辑：
+//   - Service: 国际化服务结构体
+//   - 语言管理: ListLanguages、CreateLanguage、UpdateLanguage、SetDefaultLanguage
+//   - 翻译管理: GetTranslations、UpdateTranslations
+//   - 初始化: InitDefaultLanguages 初始化默认语言数据
 package i18n
 
 import (
@@ -9,15 +16,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 国际化服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建国际化服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// ---------- Language Management ----------
+// ---------- 语言管理 ----------
 
 type LanguageResponse struct {
 	ID             uint   `json:"id"`

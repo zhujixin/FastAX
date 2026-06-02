@@ -1,3 +1,26 @@
+// 企业功能模块 HTTP 处理器
+//
+// 本文件实现了企业功能相关的 HTTP 接口：
+//
+// 子账户管理：
+//   - CreateSubAccount: 创建子账户
+//   - ListSubAccounts: 子账户列表
+//   - SetSubAccountStatus: 启用/禁用子账户
+//   - UpdateQuota: 更新子账户配额
+//
+// 用量统计：
+//   - GetUsage: 企业整体用量统计
+//   - GetSubAccountUsage: 子账户用量统计
+//
+// SSO 配置：
+//   - GetSSOConfig: 获取 SSO 配置
+//   - UpdateSSOConfig: 更新 SSO 配置
+//
+// 团队管理：
+//   - ListTeams: 团队列表
+//   - CreateTeam: 创建团队
+//   - UpdateTeam: 更新团队
+//   - DeleteTeam: 删除团队
 package enterprise
 
 import (
@@ -8,15 +31,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 企业功能模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建企业功能处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// CreateSubAccount creates a new sub-account under the authenticated enterprise user.
+// CreateSubAccount 创建子账户
+// POST /api/enterprise/sub-accounts
 func (h *Handler) CreateSubAccount(c *gin.Context) {
 	parentID, _ := c.Get("user_id")
 

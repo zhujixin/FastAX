@@ -1,3 +1,15 @@
+// 订单模块业务逻辑层
+//
+// 本文件实现了订单相关的业务逻辑：
+//   - Service: 订单服务结构体
+//   - Create: 创建订单（生成订单号、计算金额）
+//   - List: 获取用户订单列表（分页）
+//   - Get: 获取订单详情
+//   - Cancel: 取消订单（检查状态、恢复库存）
+//   - RequestRefund: 申请退款
+//   - UpdateStatus: 更新订单状态
+//   - ListAdmin: 管理员订单列表
+//   - AdminRefund: 管理员审核退款
 package order
 
 import (
@@ -10,10 +22,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 订单服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建订单服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }

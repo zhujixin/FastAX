@@ -1,3 +1,22 @@
+// 风控模块业务逻辑层
+//
+// 本文件实现了风控相关的业务逻辑：
+//
+// 风控规则：
+//   - ListRules: 获取规则列表（支持按类别筛选）
+//   - CreateRule: 创建规则
+//   - SetRuleEnabled: 启用/禁用规则
+//
+// 风控事件：
+//   - ListEvents: 获取事件列表（支持按状态、级别筛选）
+//   - HandleEvent: 处理事件
+//   - DetectEvent: 检测异常行为并生成事件
+//
+// 黑名单：
+//   - ListBlacklist: 获取黑名单列表
+//   - AddBlacklist: 添加黑名单
+//   - RemoveBlacklist: 移除黑名单
+//   - CheckBlacklist: 检查是否在黑名单中
 package risk
 
 import (
@@ -8,16 +27,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 风控服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建风控服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// --- Risk Rules ---
+// --- 风控规则 ---
 
+// RuleRequest 规则创建/更新请求
 type RuleRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Category   string `json:"category" binding:"required,oneof=register trade api"`

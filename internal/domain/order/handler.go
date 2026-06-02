@@ -1,3 +1,13 @@
+// 订单模块 HTTP 处理器
+//
+// 本文件实现了订单相关的 HTTP 接口：
+//   - Create: 创建订单（需登录）
+//   - List: 获取用户订单列表（需登录）
+//   - Get: 获取订单详情（需登录）
+//   - Cancel: 取消订单（需登录）
+//   - RequestRefund: 申请退款（需登录）
+//   - ListAdmin: 管理员订单列表
+//   - AdminRefund: 管理员审核退款
 package order
 
 import (
@@ -9,11 +19,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 订单模块 HTTP 处理器
 type Handler struct {
 	svc       *Service
 	paymentSvc *payment.Service
 }
 
+// NewHandler 创建订单处理器实例
 func NewHandler(svc *Service, paymentSvc *payment.Service) *Handler {
 	return &Handler{svc: svc, paymentSvc: paymentSvc}
 }
@@ -206,4 +218,21 @@ func (h *Handler) AdminRefund(c *gin.Context) {
 		status = "refund_rejected"
 	}
 	response.Success(c, gin.H{"message": "refund " + status})
+}
+
+// AdminGetOrder 管理员获取任意订单详情
+// GET /api/admin/orders/:id
+func (h *Handler) AdminGetOrder(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "invalid order id")
+		return
+	}
+
+	resp, err := h.svc.GetByID(uint(id))
+	if err != nil {
+		response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
+		return
+	}
+	response.Success(c, resp)
 }

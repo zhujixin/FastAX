@@ -1,3 +1,11 @@
+// 供应商适配器接口与实现
+//
+// 本文件定义了供应商适配器的核心接口和通用结构：
+//   - Adaptor: 适配器接口，定义 9 个方法（Init/GetRequestURL/SetupRequestHeader/ConvertRequest/DoRequest/DoResponse/GetModelList/GetChannelName）
+//   - SupplierMeta: 供应商元数据，传递渠道、认证、模型映射等上下文
+//   - Request/Response: 统一的请求/响应结构
+//   - Message: 消息结构（role/content）
+//   - GetAdaptor: 适配器工厂，根据 APIType 返回对应的适配器实现
 package relay
 
 import (
@@ -10,18 +18,18 @@ import (
 	"time"
 )
 
-// SupplierMeta holds supplier context passed to adaptors
+// SupplierMeta 供应商元数据，传递渠道、认证、模型映射等上下文
 type SupplierMeta struct {
 	SupplierID   uint
 	ChannelID    uint
 	APIBaseURL   string
 	APIKey       string
 	APIType      APIType
-	Model        string            // target model (may be remapped)
-	ModelMapping map[string]string // upstream model -> real model
+	Model        string            // 目标模型（可能被重映射）
+	ModelMapping map[string]string // 上游模型 → 实际模型
 }
 
-// Request represents an incoming API request
+// Request 统一的 API 请求结构
 type Request struct {
 	Model       string    `json:"model"`
 	Messages    []Message `json:"messages"`

@@ -1,3 +1,16 @@
+// 佣金模块业务逻辑层
+//
+// 本文件实现了佣金相关的业务逻辑：
+//
+// 佣金管理：
+//   - Create: 创建佣金记录（订单完成后自动生成）
+//   - ListByAgent: 获取代理商佣金列表
+//   - GetTotal: 获取佣金总计
+//   - Withdraw: 申请提现
+//   - Settle: 结算佣金（管理员）
+//
+// 计算逻辑：
+//   - Calculate: 根据订单金额和佣金比例计算佣金
 package commission
 
 import (
@@ -9,14 +22,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 佣金服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建佣金服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// CreateRequest 佣金创建请求
 type CreateRequest struct {
 	AgentID     uint   `json:"agent_id" binding:"required"`
 	CustomerID  uint   `json:"customer_id" binding:"required"`
@@ -25,6 +41,7 @@ type CreateRequest struct {
 	Rate        string `json:"commission_rate" binding:"required"`
 }
 
+// WithdrawRequest 提现申请请求
 type WithdrawRequest struct {
 	Amount string `json:"amount" binding:"required"`
 	Reason string `json:"reason"`

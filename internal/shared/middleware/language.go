@@ -1,3 +1,9 @@
+// 语言检测中间件
+//
+// 本文件实现了多语言支持的中间件：
+//   - DetectLanguage: 从 Accept-Language 头解析用户语言偏好
+//   - normalizeLanguage: 标准化语言代码（如 en-US → en）
+//   - 默认语言为 zh-CN（简体中文）
 package middleware
 
 import (
@@ -6,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// DetectLanguage reads Accept-Language header and sets it in context
-// Falls back to zh-CN if no acceptable language found
+// DetectLanguage 语言检测中间件，从 Accept-Language 头解析用户语言偏好
+// 如果未指定语言，默认使用 zh-CN（简体中文）
 func DetectLanguage() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		lang := c.GetHeader("Accept-Language")

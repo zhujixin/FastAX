@@ -1,3 +1,12 @@
+// 统一响应格式
+//
+// 本文件定义了 API 统一响应格式和辅助函数：
+//   - APIResponse: 统一响应结构体，包含 code、message、data、trace_id
+//   - PaginatedData: 分页数据结构体，包含 items、total、page、size
+//   - Success: 成功响应（code=0）
+//   - Error: 错误响应（自定义业务码）
+//   - Paginate: 分页响应
+//   - 错误码常量: 定义所有业务错误码
 package response
 
 import (
@@ -6,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// APIResponse 统一响应结构体
 type APIResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -13,6 +23,7 @@ type APIResponse struct {
 	TraceID string      `json:"trace_id,omitempty"`
 }
 
+// PaginatedData 分页数据结构体
 type PaginatedData struct {
 	Items interface{} `json:"items"`
 	Total int64       `json:"total"`

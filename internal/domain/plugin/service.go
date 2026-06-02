@@ -1,3 +1,20 @@
+// 插件系统模块
+//
+// 本文件实现了插件系统的核心逻辑：
+//
+// 插件接口：
+//   - Plugin: 插件接口定义（Name/Init/OnRequest/OnResponse/OnError）
+//   - RequestContext: 请求上下文（TraceID/UserID/Model/Body/Metadata）
+//   - ResponseContext: 响应上下文（StatusCode/Body/Headers）
+//   - ErrorContext: 错误上下文（Error/Phase）
+//
+// 插件管理：
+//   - PluginManager: 插件管理器，负责插件的注册、加载、执行
+//   - Register: 注册插件
+//   - Load: 加载插件配置
+//   - ExecuteRequest: 执行请求阶段插件
+//   - ExecuteResponse: 执行响应阶段插件
+//   - ExecuteError: 执行错误阶段插件
 package plugin
 
 import (
@@ -8,9 +25,9 @@ import (
 	"time"
 )
 
-const pluginTimeout = 500 * time.Millisecond
+const pluginTimeout = 500 * time.Millisecond // 插件执行超时时间
 
-// Plugin defines the interface for platform plugins
+// Plugin 插件接口定义
 type Plugin interface {
 	Name() string
 	Init(config map[string]string) error
@@ -19,6 +36,7 @@ type Plugin interface {
 	OnError(errCtx *ErrorContext)
 }
 
+// RequestContext 请求上下文
 type RequestContext struct {
 	TraceID  string
 	UserID   uint
@@ -27,6 +45,7 @@ type RequestContext struct {
 	Metadata map[string]string
 }
 
+// ResponseContext 响应上下文
 type ResponseContext struct {
 	TraceID    string
 	StatusCode int

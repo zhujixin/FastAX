@@ -1,3 +1,17 @@
+// Token 商品模块业务逻辑层
+//
+// 本文件实现了 Token 商品相关的业务逻辑：
+//   - Service: Token 服务结构体
+//   - GetProducts: 获取商品列表
+//   - GetProduct: 获取商品详情
+//   - GetMyTokens: 获取用户持有的 Token
+//   - GetUsageHistory: 获取 Token 使用记录
+//   - Buy: 购买 Token（创建订单）
+//   - Transfer: 转让 Token 给其他用户
+//   - Extract: 提取 Token 到外部账户
+//   - Deduct: 扣减 Token（代理转发时调用）
+//   - CreateProduct: 创建商品（管理员）
+//   - UpdateProduct: 更新商品（管理员）
 package token
 
 import (
@@ -11,10 +25,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service Token 服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建 Token 服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }

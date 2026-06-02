@@ -1,3 +1,17 @@
+// 统计模块业务逻辑层
+//
+// 本文件实现了统计相关的业务逻辑：
+//
+// 用户统计：
+//   - GetUsage: 用量统计（Token 消耗、请求数）
+//   - GetConsumption: 消费统计（金额、订单数）
+//   - GetBills: 账单明细（分页）
+//   - GetSummary: 控制台总览（余额、用量、趋势）
+//
+// 管理员统计：
+//   - GetDashboardSummary: 管理后台数据总览
+//   - GetDailyReport: 日报表
+//   - GetMonthlyReport: 月报表
 package stats
 
 import (
@@ -8,16 +22,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 统计服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建统计服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// ---------- Request / Response types ----------
+// ---------- 请求/响应类型 ----------
 
+// UsageResponse 用量统计响应
 type UsageResponse struct {
 	TotalTokens     int    `json:"total_tokens"`
 	PromptTokens    int    `json:"prompt_tokens"`
@@ -26,6 +43,7 @@ type UsageResponse struct {
 	Period          string `json:"period"`
 }
 
+// ConsumptionResponse 消费统计响应
 type ConsumptionResponse struct {
 	TotalAmount   string `json:"total_amount"`
 	OrderCount    int    `json:"order_count"`
@@ -350,6 +368,92 @@ func parseFloat(s string) float64 {
 	var f float64
 	fmt.Sscanf(s, "%f", &f)
 	return f
+}
+
+// ---------- Dashboard Charts ----------
+
+// ChartDataPoint 单个数据点
+type ChartDataPoint struct {
+	Date   string `json:"date"`
+	Value  int64  `json:"value"`
+	Amount string `json:"amount,omitempty"`
+}
+
+// DashboardCharts 管理后台图表数据
+type DashboardCharts struct {
+	Revenue []ChartDataPoint `json:"revenue"`
+	Users   []ChartDataPoint `json:"users"`
+	Orders  []ChartDataPoint `json:"orders"`
+	Tokens  []ChartDataPoint `json:"tokens"`
+}
+
+// GetDashboardCharts returns chart time-series data for the admin dashboard.
+// period: "7d" (default) or "30d"
+func (s *Service) GetDashboardCharts(period string) (*DashboardCharts, error) {
+	days := 7
+	if period == "30d" {
+		days = 30
+	}
+
+	now := time.Now()
+	startDate := now.AddDate(0, 0, -days)
+
+	charts := &DashboardCharts{
+		Revenue: make([]ChartDataPoint, 0, days),
+		Users:   make([]ChartDataPoint, 0, days),
+		Orders:  make([]ChartDataPoint, 0, days),
+		Tokens:  make([]ChartDataPoint, 0, days),
+	}
+
+	for d := startDate; d.Before(now) || d.Equal(now); d = d.AddDate(0, 0, 1) {
+		dateStr := d.Format("2006-01-02")
+		dayStart := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
+		dayEnd := dayStart.AddDate(0, 0, 1)
+
+		// Revenue
+		var revenue float64
+		s.db.Model(&model.Payment{}).
+			Where("status = ? AND created_at >= ? AND created_at < ?", "success", dayStart, dayEnd).
+			Select("COALESCE(SUM(CAST(amount AS REAL)), 0)").
+			Row().Scan(&revenue)
+		charts.Revenue = append(charts.Revenue, ChartDataPoint{
+			Date:   dateStr,
+			Amount: fmt.Sprintf("%.2f", revenue),
+		})
+
+		// New users
+		var newUsers int64
+		s.db.Model(&model.User{}).
+			Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+			Count(&newUsers)
+		charts.Users = append(charts.Users, ChartDataPoint{
+			Date:  dateStr,
+			Value: newUsers,
+		})
+
+		// New orders
+		var newOrders int64
+		s.db.Model(&model.Order{}).
+			Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+			Count(&newOrders)
+		charts.Orders = append(charts.Orders, ChartDataPoint{
+			Date:  dateStr,
+			Value: newOrders,
+		})
+
+		// Tokens used
+		var tokensUsed int64
+		s.db.Model(&model.CallLog{}).
+			Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+			Select("COALESCE(SUM(tokens_total), 0)").
+			Row().Scan(&tokensUsed)
+		charts.Tokens = append(charts.Tokens, ChartDataPoint{
+			Date:  dateStr,
+			Value: tokensUsed,
+		})
+	}
+
+	return charts, nil
 }
 
 // ---------- Reports ----------

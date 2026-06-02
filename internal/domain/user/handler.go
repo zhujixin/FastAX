@@ -1,3 +1,20 @@
+// 用户模块 HTTP 处理器
+//
+// 本文件实现了用户相关的 HTTP 接口：
+//   - Register: 用户注册（邮箱/手机 + 密码）
+//   - Login: 用户登录，返回 JWT Token
+//   - RefreshToken: 刷新 Access Token
+//   - Logout: 用户登出，销毁 Token
+//   - SendCode: 发送验证码（短信/邮件）
+//   - ResetPassword: 重置密码
+//   - OAuthRedirect: OAuth 登录跳转
+//   - OAuthCallback: OAuth 回调处理
+//   - GetUser: 获取当前用户信息
+//   - UpdateLanguage: 更新用户语言偏好
+//   - ListUsers: 用户列表（管理员）
+//   - GetUserDetail: 用户详情（管理员）
+//   - SetUserStatus: 冻结/解冻用户（管理员）
+//   - SetUserLevel: 修改用户等级（管理员）
 package user
 
 import (
@@ -9,14 +26,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 用户模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建用户处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// Register 用户注册
+// POST /api/auth/register
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

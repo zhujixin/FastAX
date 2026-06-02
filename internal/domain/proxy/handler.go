@@ -1,3 +1,13 @@
+// 代理转发模块 HTTP 处理器
+//
+// 本文件实现了代理转发相关的 HTTP 接口（OpenAI 兼容协议）：
+//   - ChatCompletions: 聊天补全接口（支持流式/非流式）
+//   - ChatMessages: Anthropic Messages API 兼容接口
+//   - ImageGenerations: 图片生成接口
+//   - AudioSpeech: 语音合成接口（TTS）
+//   - VideoGenerations: 视频生成接口
+//   - Rerank: 文档重排序接口
+//   - ListModels: 获取可用模型列表
 package proxy
 
 import (
@@ -11,15 +21,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 代理转发模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建代理处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// AnthropicMessageRequest represents the Anthropic Messages API request format.
+// AnthropicMessageRequest Anthropic Messages API 请求格式
 type AnthropicMessageRequest struct {
 	Model       string          `json:"model"`
 	Messages    json.RawMessage `json:"messages"`

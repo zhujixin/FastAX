@@ -1,7 +1,13 @@
+// API 调用日志模型
+//
+// 本文件包含调用日志相关的数据模型：
+//   - CallLog: API 调用日志表，记录每次代理转发的详细信息（请求、响应、耗时、Token 消耗等）
+//   - 用于计费、审计、问题排查和性能分析
 package model
 
 import "time"
 
+// CallLog API 调用日志表，记录每次代理转发的详细信息
 type CallLog struct {
 	ID               uint      `gorm:"primaryKey"`
 	TraceID          string    `gorm:"index;size:64;not null"`

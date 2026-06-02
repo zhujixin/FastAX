@@ -1,3 +1,12 @@
+// BYOK（自带 Key）模块 HTTP 处理器
+//
+// 本文件实现了 BYOK 相关的 HTTP 接口：
+//
+// 用户 Key 管理：
+//   - ListKeys: 获取用户 Key 列表
+//   - AddKey: 添加新 Key
+//   - DeleteKey: 删除 Key
+//   - SetKeyStatus: 启用/禁用 Key
 package byok
 
 import (
@@ -8,15 +17,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler BYOK 模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建 BYOK 处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// ListKeys returns all BYOK keys for the authenticated user.
+// ListKeys 获取用户 Key 列表
+// GET /api/byok/keys
 func (h *Handler) ListKeys(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 

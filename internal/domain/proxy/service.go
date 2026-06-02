@@ -1,3 +1,16 @@
+// 代理转发模块业务逻辑层
+//
+// 本文件实现了代理转发的核心业务逻辑：
+//   - Service: 代理服务结构体，包含路由、健康检测、熔断器等组件
+//   - ChatCompletions: 聊天补全（支持流式/非流式，自动重试）
+//   - ChatMessages: Anthropic Messages API 兼容
+//   - ImageGenerations: 图片生成转发
+//   - AudioSpeech: 语音合成转发
+//   - VideoGenerations: 视频生成转发
+//   - Rerank: 文档重排序转发
+//   - ListModels: 获取可用模型列表
+//   - forward: 核心转发逻辑（路由选择 → 请求重写 → 转发 → 响应处理）
+//   - 转发流水线: 限流 → 鉴权 → 余额检查 → 路由决策 → 转发 → 计费
 package proxy
 
 import (
@@ -18,6 +31,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 代理服务结构体
 type Service struct {
 	db            *gorm.DB
 	router        *Router
@@ -27,6 +41,7 @@ type Service struct {
 	pluginManager *plugin.PluginManager
 }
 
+// NewService 创建代理服务实例
 func NewService(db *gorm.DB) *Service {
 	router := NewRouter(db)
 

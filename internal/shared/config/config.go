@@ -1,3 +1,14 @@
+// 配置管理
+//
+// 本文件负责应用程序配置的加载和管理：
+//   - Config: 主配置结构体，包含所有配置项
+//   - ServerConfig: 服务器配置（端口、模式、超时等）
+//   - DatabaseConfig: 数据库配置（SQLite 路径、日志级别等）
+//   - RedisConfig: Redis 配置（地址、密码、数据库等）
+//   - JWTConfig: JWT 认证配置（密钥、过期时间等）
+//   - RateLimitConfig: 限流配置（IP 限流、认证限流等）
+//   - GuardrailConfig: 安全护栏配置（模式、规则等）
+//   - Load: 从配置文件加载配置（支持 YAML/JSON/TOML）
 package config
 
 import (
@@ -9,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config 主配置结构体，包含所有配置项
 type Config struct {
 	Server    ServerConfig    `mapstructure:"server"`
 	Database  DatabaseConfig  `mapstructure:"database"`

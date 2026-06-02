@@ -1,3 +1,15 @@
+// 日志模块业务逻辑层
+//
+// 本文件实现了日志相关的业务逻辑：
+//
+// 审计日志：
+//   - ListAuditLogs: 获取审计日志列表（分页、筛选）
+//   - ExportAuditLogs: 导出审计日志（CSV 格式）
+//   - CreateAuditLog: 创建审计日志
+//
+// 调用日志：
+//   - ListCallLogs: 获取 API 调用日志列表（分页、筛选）
+//   - CreateCallLog: 创建调用日志
 package log
 
 import (
@@ -10,14 +22,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 日志服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建日志服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// CallLogRequest 调用日志创建请求
 type CallLogRequest struct {
 	TraceID          string `json:"trace_id"`
 	UserID           uint   `json:"user_id"`

@@ -1,3 +1,16 @@
+// 模型市场模块 HTTP 处理器
+//
+// 本文件实现了模型市场相关的 HTTP 接口：
+//
+// 模型查询：
+//   - ListModels: 模型列表（支持按供应商、类型筛选）
+//   - CompareModels: 模型多维度对比
+//   - GetBenchmarks: 获取基准测试数据
+//   - RecommendModels: 模型推荐
+//
+// 供应商健康：
+//   - ListProviders: 供应商健康面板（公开）
+//   - GetProviderHealth: 单个供应商健康状态
 package market
 
 import (
@@ -8,14 +21,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 模型市场模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建模型市场处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// ListModels 获取模型列表
+// GET /api/models
 func (h *Handler) ListModels(c *gin.Context) {
 	provider := c.Query("provider")
 	modelType := c.Query("type")

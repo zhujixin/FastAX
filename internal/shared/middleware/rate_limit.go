@@ -1,3 +1,10 @@
+// 限流中间件
+//
+// 本文件实现了基于滑动窗口的请求限流：
+//   - RateLimiter: 限流器结构体，支持按 IP 或用户进行限流
+//   - rateEntry: 限流条目，记录计数和重置时间
+//   - RateLimitIP: 按 IP 限流的中间件
+//   - RateLimitAuth: 按认证用户限流的中间件（用于登录、注册等敏感操作）
 package middleware
 
 import (
@@ -9,11 +16,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// rateEntry 限流条目，记录计数和重置时间
 type rateEntry struct {
 	count    int
 	resetAt  time.Time
 }
 
+// RateLimiter 限流器结构体，支持按 IP 或用户进行限流
 type RateLimiter struct {
 	mu       sync.Mutex
 	entries  map[string]*rateEntry

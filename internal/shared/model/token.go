@@ -1,3 +1,9 @@
+// Token 商品与用户持有模型
+//
+// 本文件包含 Token 相关的数据模型：
+//   - TokenProduct: Token 商品表，定义可购买的 Token 产品（如 GPT-4 Token 包）
+//   - UserToken: 用户 Token 持有表，记录用户购买的 Token 数量、使用情况、有效期等
+//   - TokenUsage: Token 使用记录表，记录每次 API 调用的 Token 消耗
 package model
 
 import "time"

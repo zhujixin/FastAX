@@ -1,3 +1,17 @@
+// 统计模块 HTTP 处理器
+//
+// 本文件实现了统计相关的 HTTP 接口：
+//
+// 用户统计：
+//   - GetUsage: 用量统计（按日/周/月）
+//   - GetConsumption: 消费统计
+//   - GetBills: 账单明细
+//   - GetSummary: 控制台总览
+//
+// 管理员统计：
+//   - GetDashboardSummary: 管理后台数据总览
+//   - GetDailyReport: 日报表
+//   - GetMonthlyReport: 月报表
 package stats
 
 import (
@@ -9,14 +23,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 统计模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建统计处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// GetUsage 获取用量统计
 // GET /api/stats/usage?period=month
 func (h *Handler) GetUsage(c *gin.Context) {
 	userID, _ := c.Get("user_id")
@@ -87,6 +104,17 @@ func (h *Handler) GetDashboardSummary(c *gin.Context) {
 		return
 	}
 	response.Success(c, resp)
+}
+
+// GET /api/admin/dashboard/charts?period=7d
+func (h *Handler) GetDashboardCharts(c *gin.Context) {
+	period := c.DefaultQuery("period", "7d")
+	charts, err := h.svc.GetDashboardCharts(period)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, charts)
 }
 
 // GET /api/admin/reports/daily?date=2026-05-31

@@ -1,3 +1,14 @@
+// 佣金模块 HTTP 处理器
+//
+// 本文件实现了佣金相关的 HTTP 接口：
+//
+// 代理商佣金：
+//   - ListCommissions: 佣金列表（支持按状态筛选）
+//   - GetTotal: 佣金总计
+//   - Withdraw: 申请提现
+//
+// 管理员操作：
+//   - Settle: 结算佣金
 package commission
 
 import (
@@ -8,15 +19,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 佣金模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建佣金处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// ListCommissions returns commissions for the authenticated agent.
+// ListCommissions 获取佣金列表
+// GET /api/commissions
 func (h *Handler) ListCommissions(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	status := c.Query("status")

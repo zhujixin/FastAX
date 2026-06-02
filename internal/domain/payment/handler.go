@@ -1,3 +1,11 @@
+// 支付模块 HTTP 处理器
+//
+// 本文件实现了支付相关的 HTTP 接口：
+//   - Create: 创建支付（生成支付链接）
+//   - Callback: 支付回调处理（微信、支付宝、Stripe）
+//   - GetPayment: 获取支付信息
+//   - CreateRefund: 创建退款申请
+//   - ListRefunds: 获取退款列表
 package payment
 
 import (
@@ -8,14 +16,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 支付模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建支付处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// Create 创建支付
+// POST /api/payments
 func (h *Handler) Create(c *gin.Context) {
 	var req CreatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

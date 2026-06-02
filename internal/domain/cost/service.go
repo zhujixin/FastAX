@@ -1,3 +1,20 @@
+// 成本优化模块业务逻辑层
+//
+// 本文件实现了成本优化相关的业务逻辑：
+//
+// 预算管理：
+//   - GetBudget: 获取用户预算设置
+//   - SetBudget: 设置用户预算（按日/周/月）
+//   - CheckBudget: 检查是否超出预算
+//
+// 成本告警：
+//   - GetAlerts: 获取用户告警配置
+//   - SetAlert: 设置成本告警
+//   - CheckAlert: 检查是否触发告警
+//
+// 消费跟踪：
+//   - RecordSpending: 记录消费金额
+//   - GetSpending: 获取当前周期消费
 package cost
 
 import (
@@ -9,14 +26,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 成本优化服务结构体
 type Service struct {
 	db       *gorm.DB
 	mu       sync.RWMutex
-	budgets  map[uint]*BudgetSetting   // userID -> budget
-	alerts   map[uint]*AlertSetting    // userID -> alert config
-	spending map[uint]float64          // userID -> current period spending
+	budgets  map[uint]*BudgetSetting   // userID -> 预算设置
+	alerts   map[uint]*AlertSetting    // userID -> 告警配置
+	spending map[uint]float64          // userID -> 当前周期消费
 }
 
+// NewService 创建成本优化服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{
 		db:       db,
@@ -26,7 +45,7 @@ func NewService(db *gorm.DB) *Service {
 	}
 }
 
-// --- Budget & Alert types ---
+// --- 预算与告警类型 ---
 
 type BudgetSetting struct {
 	UserID    uint    `json:"user_id"`

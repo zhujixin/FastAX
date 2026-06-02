@@ -1,3 +1,9 @@
+// 数据库初始化与迁移
+//
+// 本文件负责数据库的初始化和表结构迁移：
+//   - InitDB: 初始化 SQLite 数据库连接（WAL 模式）
+//   - AutoMigrate: 自动迁移所有表结构
+//   - 设置数据库连接池参数（最大连接数、空闲连接数、连接生命周期）
 package model
 
 import (
@@ -10,6 +16,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// DB 全局数据库实例
 var DB *gorm.DB
 
 func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {

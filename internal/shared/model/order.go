@@ -1,7 +1,14 @@
+// 订单与支付模型
+//
+// 本文件包含订单相关的数据模型：
+//   - Order: 订单表，记录用户购买 Token 的订单信息（订单号、金额、状态等）
+//   - Payment: 支付记录表，记录支付网关的支付信息（微信、支付宝、Stripe 等）
+//   - Refund: 退款记录表，记录退款申请和处理状态
 package model
 
 import "time"
 
+// Order 订单表，记录用户购买 Token 的订单信息
 type Order struct {
 	ID             uint      `gorm:"primaryKey"`
 	OrderNo        string    `gorm:"uniqueIndex;size:64;not null"`

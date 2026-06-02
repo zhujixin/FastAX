@@ -1,3 +1,22 @@
+// 通知模块业务逻辑层
+//
+// 本文件实现了通知相关的业务逻辑：
+//
+// 通知发送：
+//   - Send: 发送通知（站内信/短信/邮件）
+//   - SendBatch: 批量发送通知
+//   - SendByTemplate: 使用模板发送通知
+//
+// 用户通知：
+//   - List: 获取用户通知列表（分页、筛选）
+//   - UnreadCount: 获取未读通知数量
+//   - MarkRead: 标记通知为已读
+//   - MarkAllRead: 标记所有通知为已读
+//
+// 模板管理：
+//   - ListTemplates: 获取模板列表
+//   - CreateTemplate: 创建模板
+//   - UpdateTemplate: 更新模板
 package notify
 
 import (
@@ -9,14 +28,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 通知服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建通知服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// SendRequest 通知发送请求
 type SendRequest struct {
 	UserID  uint   `json:"user_id" binding:"required"`
 	Type    string `json:"type" binding:"required,oneof=order security expiry system"`
@@ -26,6 +48,7 @@ type SendRequest struct {
 	Language string `json:"language"`
 }
 
+// TemplateRequest 模板创建/更新请求
 type TemplateRequest struct {
 	Code     string `json:"code" binding:"required"`
 	Name     string `json:"name"`

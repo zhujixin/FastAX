@@ -1,3 +1,11 @@
+// 验证码服务
+//
+// 本文件实现了验证码的生成和验证：
+//   - VerifyService: 验证码服务结构体
+//   - GenerateCode: 生成 6 位数字验证码
+//   - SendCode: 发送验证码（短信/邮件）
+//   - VerifyCode: 验证用户输入的验证码
+//   - 验证码有效期为 5 分钟，存储在 Redis 中
 package user
 
 import (
@@ -10,10 +18,11 @@ import (
 )
 
 const (
-	verifyCodeTTL    = 5 * time.Minute
-	verifyCodeLength = 6
+	verifyCodeTTL    = 5 * time.Minute // 验证码有效期
+	verifyCodeLength = 6               // 验证码长度
 )
 
+// VerifyService 验证码服务结构体
 type VerifyService struct {
 	cache *cache.RedisClient
 }

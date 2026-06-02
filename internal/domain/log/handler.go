@@ -1,3 +1,13 @@
+// 日志模块 HTTP 处理器
+//
+// 本文件实现了日志相关的 HTTP 接口：
+//
+// 审计日志：
+//   - ListAuditLogs: 审计日志列表（支持分页、筛选）
+//   - ExportAuditLogs: 导出审计日志（CSV/Excel）
+//
+// 调用日志：
+//   - ListCallLogs: API 调用日志列表（支持分页、筛选）
 package log
 
 import (
@@ -7,15 +17,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 日志模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建日志处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// ListAuditLogs returns audit logs with pagination and filtering.
+// ListAuditLogs 获取审计日志列表
+// GET /api/admin/audit/logs
 func (h *Handler) ListAuditLogs(c *gin.Context) {
 	var query AuditLogQuery
 	if err := c.ShouldBindQuery(&query); err != nil {

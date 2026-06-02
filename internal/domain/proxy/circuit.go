@@ -1,3 +1,12 @@
+// 熔断器实现
+//
+// 本文件实现了熔断器模式（Circuit Breaker Pattern）：
+//   - CircuitBreaker: 熔断器结构体，保护下游服务
+//   - CircuitState: 熔断器状态（Closed/Open/HalfOpen）
+//   - Execute: 执行受保护的操作
+//   - RecordSuccess/RecordFailure: 记录成功/失败
+//   - 熔断策略: 5xx/超时自动禁用，排除 401/403/429
+//   - 恢复策略: HalfOpen 状态下探测恢复
 package proxy
 
 import (
@@ -5,16 +14,16 @@ import (
 	"time"
 )
 
-// CircuitState represents the state of a circuit breaker
+// CircuitState 熔断器状态
 type CircuitState int
 
 const (
-	CircuitClosed   CircuitState = iota // Normal operation
-	CircuitOpen                         // Tripped, rejecting requests
-	CircuitHalfOpen                     // Testing if service recovered
+	CircuitClosed   CircuitState = iota // 正常状态
+	CircuitOpen                         // 熔断状态，拒绝请求
+	CircuitHalfOpen                     // 半开状态，探测恢复
 )
 
-// CircuitBreaker implements the circuit breaker pattern
+// CircuitBreaker 熔断器结构体
 type CircuitBreaker struct {
 	mu              sync.RWMutex
 	failureCount    int
@@ -26,6 +35,7 @@ type CircuitBreaker struct {
 	lastFailure     time.Time
 }
 
+// NewCircuitBreaker 创建熔断器实例
 func NewCircuitBreaker(failureThreshold, successThreshold int, timeout time.Duration) *CircuitBreaker {
 	return &CircuitBreaker{
 		failureThreshold: failureThreshold,

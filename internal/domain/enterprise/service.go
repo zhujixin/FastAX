@@ -1,3 +1,26 @@
+// 企业功能模块业务逻辑层
+//
+// 本文件实现了企业功能相关的业务逻辑：
+//
+// 子账户管理：
+//   - CreateSubAccount: 创建子账户
+//   - ListSubAccounts: 获取子账户列表
+//   - SetSubAccountStatus: 启用/禁用子账户
+//   - UpdateQuota: 更新子账户配额
+//
+// 用量统计：
+//   - GetUsage: 获取企业整体用量统计
+//   - GetSubAccountUsage: 获取子账户用量统计
+//
+// SSO 配置：
+//   - GetSSOConfig: 获取 SSO 配置
+//   - UpdateSSOConfig: 更新 SSO 配置
+//
+// 团队管理：
+//   - ListTeams: 获取团队列表
+//   - CreateTeam: 创建团队
+//   - UpdateTeam: 更新团队
+//   - DeleteTeam: 删除团队
 package enterprise
 
 import (
@@ -9,16 +32,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 企业功能服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建企业功能服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// --- Sub Account Management ---
+// --- 子账户管理 ---
 
+// SubAccountRequest 子账户创建请求
 type SubAccountRequest struct {
 	Email      string   `json:"email" binding:"required,email"`
 	Password   string   `json:"password" binding:"required,min=6"`
@@ -26,6 +52,7 @@ type SubAccountRequest struct {
 	Permissions []string `json:"permissions"`
 }
 
+// SubAccountResponse 子账户响应
 type SubAccountResponse struct {
 	ID          uint     `json:"id"`
 	ParentID    uint     `json:"parent_id"`

@@ -1,3 +1,18 @@
+// BYOK（自带 Key）模块业务逻辑层
+//
+// 本文件实现了 BYOK 相关的业务逻辑：
+//
+// Key 管理：
+//   - ListKeys: 获取用户 Key 列表
+//   - AddKey: 添加新 Key（加密存储）
+//   - DeleteKey: 删除 Key
+//   - SetKeyStatus: 启用/禁用 Key
+//   - GetKey: 获取单个 Key 详情
+//
+// 安全特性：
+//   - Key 加密存储（AES-256-GCM）
+//   - 模型白名单限制
+//   - 使用量统计
 package byok
 
 import (
@@ -9,14 +24,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service BYOK 服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建 BYOK 服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// AddKeyRequest Key 添加请求
 type AddKeyRequest struct {
 	Provider       string `json:"provider" binding:"required"`
 	KeyEncrypted   string `json:"key_encrypted" binding:"required"`
@@ -25,6 +43,7 @@ type AddKeyRequest struct {
 	ModelWhitelist string `json:"model_whitelist"`
 }
 
+// KeyResponse Key 响应
 type KeyResponse struct {
 	ID             uint   `json:"id"`
 	Provider       string `json:"provider"`

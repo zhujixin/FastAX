@@ -1,3 +1,12 @@
+// 路由引擎
+//
+// 本文件实现了代理转发的路由决策：
+//   - Router: 路由器结构体，维护渠道缓存和健康检测
+//   - ChannelEntry: 渠道缓存条目，记录渠道的模型、优先级、权重等
+//   - SelectChannel: 选择最佳渠道（优先级分组 + 同优先级权重随机）
+//   - SyncChannelCache: 定时同步渠道缓存（60秒刷新）
+//   - InitChannelCache: 初始化渠道缓存
+//   - 路由策略: 优先级分组 + 同优先级权重随机（非加权评分公式）
 package proxy
 
 import (
@@ -11,17 +20,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// ChannelEntry represents a channel in the routing cache
+// ChannelEntry 渠道缓存条目，记录渠道的模型、优先级、权重等信息
 type ChannelEntry struct {
 	ChannelID uint
 	Model     string
 	Group     string
 	Priority  int
 	Weight    int
-	Status    int // 1=enabled, 3=disabled
+	Status    int // 1=启用, 3=禁用
 }
 
-// Router handles routing decisions with in-memory channel cache
+// Router 路由器结构体，维护渠道缓存和健康检测
 type Router struct {
 	mu            sync.RWMutex
 	channels      []ChannelEntry

@@ -1,3 +1,11 @@
+// 上游错误解析
+//
+// 本文件负责解析不同供应商的错误响应：
+//   - ParseUpstreamError: 统一错误解析入口，根据 APIType 分发
+//   - parseOpenAIError: 解析 OpenAI 格式错误 {"error": {"message": "...", "type": "...", "code": "..."}}
+//   - parseAnthropicError: 解析 Anthropic 格式错误 {"type": "error", "error": {"type": "...", "message": "..."}}
+//   - parseGeminiError: 解析 Gemini 格式错误 {"error": {"code": ..., "message": "...", "status": "..."}}
+//   - APIError: 统一的错误结构体
 package relay
 
 import (
@@ -5,8 +13,7 @@ import (
 	"net/http"
 )
 
-// ParseUpstreamError parses error responses from different suppliers
-// into a standardized APIError.
+// ParseUpstreamError 解析上游供应商的错误响应，返回标准化的 APIError
 func ParseUpstreamError(body []byte, apiType APIType) *APIError {
 	switch apiType {
 	case APITypeAnthropic:
@@ -18,7 +25,7 @@ func ParseUpstreamError(body []byte, apiType APIType) *APIError {
 	}
 }
 
-// parseOpenAIError parses OpenAI-format errors:
+// parseOpenAIError 解析 OpenAI 格式错误
 // {"error": {"message": "...", "type": "...", "code": "..."}}
 func parseOpenAIError(body []byte) *APIError {
 	var errResp struct {

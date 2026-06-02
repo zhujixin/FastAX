@@ -1,5 +1,11 @@
+// 国际化（i18n）模型
+//
+// 本文件包含国际化相关的数据模型：
+//   - SupportedLanguage: 支持语言表，定义平台支持的语言列表
+//   - Translation: 翻译文本表，存储各语言的翻译内容
 package model
 
+// SupportedLanguage 支持语言表，定义平台支持的语言列表
 type SupportedLanguage struct {
 	ID             uint   `gorm:"primaryKey"`
 	Locale         string `gorm:"uniqueIndex;size:16;not null"`

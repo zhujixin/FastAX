@@ -1,3 +1,11 @@
+// Redis 缓存层
+//
+// 本文件封装了 Redis 客户端操作，提供统一的缓存接口：
+//   - RedisClient: Redis 客户端封装，支持连接池管理
+//   - 基础操作: Get/Set/Delete/Exists/TTL/Expire
+//   - JSON 序列化: GetJSON/SetJSON，支持任意类型的缓存存取
+//   - 原子操作: Incr/Decr，用于计数器场景
+//   - 分布式锁: Lock/Unlock，基于 Redis 的简单锁实现
 package cache
 
 import (

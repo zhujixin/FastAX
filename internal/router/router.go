@@ -1,3 +1,21 @@
+// 路由注册
+//
+// 本文件负责注册所有 HTTP 路由：
+//   - Handlers: 处理器集合，包含所有 domain 的 Handler
+//   - NewHandlers: 初始化所有处理器（注入依赖）
+//   - RegisterRoutes: 注册路由到 Gin 引擎
+//
+// 路由分组：
+//   - /api/*: 业务 API（用户端 + 管理端）
+//   - /v1/*: OpenAI 兼容协议（代理转发）
+//   - /health: 健康检查
+//
+// 中间件：
+//   - CORS: 跨域支持
+//   - DetectLanguage: 语言检测
+//   - AuthRequired: JWT 认证
+//   - AdminRequired: 管理员权限
+//   - RateLimit: 限流
 package router
 
 import (
@@ -29,6 +47,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Handlers 处理器集合，包含所有 domain 的 Handler
 type Handlers struct {
 	User      *user.Handler
 	Token     *token.Handler
@@ -49,6 +68,7 @@ type Handlers struct {
 	I18n       *i18n.Handler
 }
 
+// NewHandlers 初始化所有处理器（注入依赖）
 func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Handlers {
 	userSvc := user.NewService(db, redis, &cfg.JWT)
 	tokenSvc := token.NewService(db)
@@ -88,14 +108,15 @@ func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Han
 	}
 }
 
+// RegisterRoutes 注册所有路由到 Gin 引擎
 func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) {
 	h := NewHandlers(db, redis, cfg)
 
-	// Global middleware
+	// 全局中间件
 	r.Use(middleware.CORS())
 	r.Use(middleware.DetectLanguage())
 
-	// Rate limiters
+	// 限流器
 	ipLimiter := middleware.NewRateLimiter(cfg.RateLimit.IP, time.Minute)
 	authLimiter := middleware.NewRateLimiter(cfg.RateLimit.Auth, time.Minute)
 
@@ -224,11 +245,13 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		admin.Use(middleware.AuthRequired(cfg.JWT.Secret, redis), middleware.AdminRequired())
 		{
 			admin.GET("/dashboard/summary", h.Stats.GetDashboardSummary)
+			admin.GET("/dashboard/charts", h.Stats.GetDashboardCharts)
 			admin.GET("/users", h.User.ListUsers)
 			admin.GET("/users/:id", h.User.GetUserDetail)
 			admin.PUT("/users/:id/status", h.User.SetUserStatus)
 			admin.PUT("/users/:id/level", h.User.SetUserLevel)
 			admin.GET("/orders", h.Order.ListAdmin)
+			admin.GET("/orders/:id", h.Order.AdminGetOrder)
 			admin.POST("/orders/:id/refund", h.Order.AdminRefund)
 
 			// Product management
@@ -256,6 +279,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.POST("/vendors/:vendor_id/products", h.Vendor.CreateProduct)
 			admin.POST("/vendor-products/:id/review", h.Vendor.ReviewProduct)
 			admin.GET("/vendors/:vendor_id/products", h.Vendor.ListProducts)
+			admin.PUT("/vendor-products/:id/price", h.Vendor.AdminUpdateProductPrice)
 
 			// Risk management
 			admin.GET("/risk/rules", h.Risk.ListRules)
@@ -275,6 +299,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			// Guardrail management
 			admin.GET("/guardrails/rules", h.Guardrail.ListRules)
 			admin.POST("/guardrails/rules", h.Guardrail.CreateRule)
+			admin.PUT("/guardrails/rules/:id", h.Guardrail.UpdateRule)
+			admin.DELETE("/guardrails/rules/:id", h.Guardrail.DeleteRule)
 			admin.PUT("/guardrails/rules/:id/enabled", h.Guardrail.SetRuleEnabled)
 			admin.GET("/guardrails/logs", h.Guardrail.ListLogs)
 			admin.POST("/guardrails/detect", h.Guardrail.Detect)

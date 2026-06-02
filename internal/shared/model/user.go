@@ -1,3 +1,10 @@
+// Package model 定义了 FastAX 平台的所有数据模型（GORM 模型）
+//
+// 本文件包含用户相关的数据模型：
+//   - User: 用户主表，存储用户基本信息、认证信息、状态等
+//   - UserProfile: 用户资料表，存储头像、昵称等扩展信息
+//   - SubAccount: 企业子账户，支持团队/企业多账户管理
+//   - UserSession: 用户会话表，管理 JWT Token 和设备信息
 package model
 
 import "time"

@@ -1,3 +1,16 @@
+// 模型市场模块业务逻辑层
+//
+// 本文件实现了模型市场相关的业务逻辑：
+//
+// 模型查询：
+//   - ListModels: 获取模型列表（支持按供应商、类型筛选）
+//   - CompareModels: 模型多维度对比（价格、性能、功能）
+//   - GetBenchmarks: 获取基准测试数据
+//   - RecommendModels: 模型推荐（基于用户使用场景）
+//
+// 供应商健康：
+//   - ListProviders: 获取供应商健康面板
+//   - GetProviderHealth: 获取单个供应商健康状态
 package market
 
 import (
@@ -8,14 +21,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 模型市场服务结构体
 type Service struct {
 	db *gorm.DB
 }
 
+// NewService 创建模型市场服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// ModelInfo 模型信息
 type ModelInfo struct {
 	ID       uint   `json:"id"`
 	Name     string `json:"name"`
@@ -26,8 +42,9 @@ type ModelInfo struct {
 	Status   string `json:"status"`
 }
 
+// ListModels 获取模型列表
 func (s *Service) ListModels(provider, modelType string) ([]ModelInfo, error) {
-	// Query from platform token products
+	// 从平台 Token 商品查询
 	var products []model.TokenProduct
 	query := s.db.Where("status = 1").Order("sort_order asc")
 	if modelType != "" {

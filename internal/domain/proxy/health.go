@@ -1,3 +1,12 @@
+// 供应商健康检测
+//
+// 本文件实现了供应商渠道的健康检测：
+//   - HealthChecker: 健康检测器结构体，定期检测供应商可用性
+//   - Check: 执行单个渠道的健康检测（HTTP Ping）
+//   - CheckAll: 批量检测所有启用的渠道
+//   - Start/Stop: 启动/停止定时检测
+//   - GetStatus: 获取渠道健康状态
+//   - 检测策略: 10秒 Ping + 5分钟周期性检测
 package proxy
 
 import (
@@ -9,8 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// HealthChecker performs periodic health checks on suppliers.
-// Results feed into Router.SelectChannel to filter unhealthy channels.
+// HealthChecker 健康检测器结构体，定期检测供应商可用性
 type HealthChecker struct {
 	mu       sync.RWMutex
 	db       *gorm.DB
@@ -20,6 +28,7 @@ type HealthChecker struct {
 	stopCh   chan struct{}
 }
 
+// NewHealthChecker 创建健康检测器实例
 func NewHealthChecker(db *gorm.DB, interval time.Duration) *HealthChecker {
 	return &HealthChecker{
 		db: db,

@@ -1,3 +1,11 @@
+// JWT 认证中间件
+//
+// 本文件实现了基于 JWT 的用户认证和授权：
+//   - Claims: JWT 声明结构体，包含用户 ID、角色等信息
+//   - AuthRequired: 认证中间件，验证 JWT Token 的有效性
+//   - AdminRequired: 管理员权限中间件，检查用户是否为管理员
+//   - GenerateToken: 生成 JWT Token（Access Token + Refresh Token）
+//   - RefreshToken: 刷新 Access Token
 package middleware
 
 import (
@@ -13,6 +21,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Claims JWT 声明结构体，包含用户 ID、角色等信息
 type Claims struct {
 	UserID uint   `json:"user_id"`
 	Role   string `json:"role"`

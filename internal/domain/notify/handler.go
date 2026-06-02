@@ -1,3 +1,17 @@
+// 通知模块 HTTP 处理器
+//
+// 本文件实现了通知相关的 HTTP 接口：
+//
+// 用户通知：
+//   - List: 通知列表（支持分页、筛选）
+//   - UnreadCount: 未读通知数量
+//   - MarkRead: 标记单条通知为已读
+//   - MarkAllRead: 标记所有通知为已读
+//
+// 通知模板管理（管理员）：
+//   - ListTemplates: 模板列表
+//   - CreateTemplate: 创建模板
+//   - UpdateTemplate: 更新模板
 package notify
 
 import (
@@ -8,14 +22,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 通知模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建通知处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// List 获取通知列表
+// GET /api/notifications
 func (h *Handler) List(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 

@@ -1,7 +1,14 @@
+// 供应商入驻与结算模型
+//
+// 本文件包含供应商相关的数据模型：
+//   - SupplierVendor: 供应商入驻表，记录供应商申请、审核、状态等信息
+//   - VendorProduct: 供应商商品表，供应商发布的 Token 商品
+//   - VendorSettlement: 供应商结算表，记录佣金结算和提现信息
 package model
 
 import "time"
 
+// SupplierVendor 供应商入驻表，记录供应商申请、审核、状态等信息
 type SupplierVendor struct {
 	ID               uint      `gorm:"primaryKey"`
 	UserID           uint      `gorm:"uniqueIndex;not null"`

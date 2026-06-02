@@ -1,3 +1,14 @@
+// 用户模块业务逻辑层
+//
+// 本文件实现了用户相关的业务逻辑：
+//   - Service: 用户服务结构体
+//   - Register: 用户注册（密码加密存储）
+//   - Login: 用户登录（密码验证、JWT 生成）
+//   - RefreshToken: 刷新 Access Token
+//   - GetUser: 获取用户信息
+//   - UpdateLanguage: 更新用户语言偏好
+//   - OAuthLogin: OAuth 第三方登录
+//   - 管理员功能: ListUsers、GetUserDetail、SetUserStatus、SetUserLevel
 package user
 
 import (
@@ -13,6 +24,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 用户服务结构体
 type Service struct {
 	db     *gorm.DB
 	cache  *cache.RedisClient
@@ -20,6 +32,7 @@ type Service struct {
 	verify *VerifyService
 }
 
+// NewService 创建用户服务实例
 func NewService(db *gorm.DB, redis *cache.RedisClient, cfg *config.JWTConfig) *Service {
 	return &Service{
 		db:     db,

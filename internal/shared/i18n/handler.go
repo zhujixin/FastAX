@@ -1,3 +1,12 @@
+// 国际化 HTTP 处理器
+//
+// 本文件实现了国际化相关的 HTTP 接口：
+//   - ListLanguages: 获取支持的语言列表（公开接口）
+//   - GetTranslations: 获取指定语言的翻译文件（公开接口）
+//   - ListAllLanguages: 获取所有语言列表（管理员接口）
+//   - CreateLanguage: 创建新语言（管理员接口）
+//   - UpdateLanguage: 更新语言配置（管理员接口）
+//   - SetDefaultLanguage: 设置默认语言（管理员接口）
 package i18n
 
 import (
@@ -8,15 +17,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 国际化 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建国际化处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// GET /api/i18n/languages - List all enabled languages (public)
+// ListLanguages 获取支持的语言列表（公开接口）
+// GET /api/i18n/languages
 func (h *Handler) ListLanguages(c *gin.Context) {
 	languages, err := h.svc.ListEnabledLanguages()
 	if err != nil {

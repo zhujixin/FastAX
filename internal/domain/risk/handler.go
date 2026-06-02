@@ -1,3 +1,20 @@
+// 风控模块 HTTP 处理器
+//
+// 本文件实现了风控相关的 HTTP 接口：
+//
+// 风控规则管理：
+//   - ListRules: 规则列表（支持按类别筛选）
+//   - CreateRule: 创建规则
+//   - SetRuleEnabled: 启用/禁用规则
+//
+// 风控事件管理：
+//   - ListEvents: 事件列表（支持按状态、级别筛选）
+//   - HandleEvent: 处理事件
+//
+// 黑名单管理：
+//   - ListBlacklist: 黑名单列表
+//   - AddBlacklist: 添加黑名单
+//   - RemoveBlacklist: 移除黑名单
 package risk
 
 import (
@@ -8,15 +25,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler 风控模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建风控处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// ListRules returns all risk rules, optionally filtered by category.
+// ListRules 获取风控规则列表
+// GET /api/admin/risk/rules
 func (h *Handler) ListRules(c *gin.Context) {
 	category := c.Query("category")
 	rules, err := h.svc.ListRules(category)

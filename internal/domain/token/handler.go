@@ -1,3 +1,15 @@
+// Token 商品模块 HTTP 处理器
+//
+// 本文件实现了 Token 商品相关的 HTTP 接口：
+//   - GetProducts: 获取商品列表（公开接口）
+//   - GetProduct: 获取商品详情（公开接口）
+//   - GetMyTokens: 获取用户持有的 Token（需登录）
+//   - GetUsageHistory: 获取 Token 使用记录（需登录）
+//   - Buy: 购买 Token（需登录）
+//   - Transfer: 转让 Token（需登录）
+//   - Extract: 提取 Token（需登录）
+//   - CreateProduct: 创建商品（管理员）
+//   - UpdateProduct: 更新商品（管理员）
 package token
 
 import (
@@ -8,14 +20,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler Token 商品模块 HTTP 处理器
 type Handler struct {
 	svc *Service
 }
 
+// NewHandler 创建 Token 处理器实例
 func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// GetProducts 获取商品列表（公开接口）
+// GET /api/tokens/products
 func (h *Handler) GetProducts(c *gin.Context) {
 	products, err := h.svc.GetProducts()
 	if err != nil {

@@ -1,5 +1,11 @@
+// BYOK（自带 Key）模型
+//
+// 本文件包含 BYOK 相关的数据模型：
+//   - BYOKKey: 用户自带 Key 表，存储用户提供的供应商 API Key（加密存储）
+//   - BYOKUsage: BYOK 使用记录表，记录用户自带 Key 的调用情况
 package model
 
+// BYOKKey 用户自带 Key 表，存储用户提供的供应商 API Key（加密存储）
 type BYOKKey struct {
 	ID             uint   `gorm:"primaryKey"`
 	UserID         uint   `gorm:"index:idx_byok_user;not null"`

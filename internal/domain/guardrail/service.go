@@ -1,3 +1,18 @@
+// 安全护栏模块业务逻辑层
+//
+// 本文件实现了安全护栏相关的业务逻辑：
+//
+// 护栏规则：
+//   - ListRules: 获取规则列表（支持按阶段筛选）
+//   - CreateRule: 创建规则
+//   - SetRuleEnabled: 启用/禁用规则
+//
+// 检测日志：
+//   - ListLogs: 获取检测日志列表（分页、筛选）
+//
+// 实时检测：
+//   - Detect: 执行内容检测（PII、注入、敏感词、内容审核）
+//   - 检测模式: enforce（强制拦截）/ monitor（仅监控）/ log（仅记录）
 package guardrail
 
 import (
@@ -9,11 +24,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// Service 安全护栏服务结构体
 type Service struct {
 	db    *gorm.DB
-	mode  string // "enforce" or "monitor"
+	mode  string // "enforce" 或 "monitor"
 }
 
+// NewService 创建安全护栏服务实例
 func NewService(db *gorm.DB, mode string) *Service {
 	if mode == "" {
 		mode = "monitor"
@@ -21,8 +38,9 @@ func NewService(db *gorm.DB, mode string) *Service {
 	return &Service{db: db, mode: mode}
 }
 
-// --- Rules ---
+// --- 护栏规则 ---
 
+// RuleRequest 规则创建/更新请求
 type RuleRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Stage      string `json:"stage" binding:"required,oneof=before after"`
@@ -69,6 +87,42 @@ func (s *Service) SetRuleEnabled(id uint, enabled bool) error {
 	result := s.db.Model(&model.GuardrailRule{}).Where("id = ?", id).Update("enabled", v)
 	if result.Error != nil {
 		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("rule not found")
+	}
+	return nil
+}
+
+// UpdateRule 更新护栏规则
+func (s *Service) UpdateRule(id uint, req *RuleRequest) (*model.GuardrailRule, error) {
+	updates := map[string]any{
+		"name":       req.Name,
+		"stage":      req.Stage,
+		"type":       req.Type,
+		"action":     req.Action,
+		"conditions": req.Conditions,
+		"priority":   req.Priority,
+	}
+	result := s.db.Model(&model.GuardrailRule{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return nil, fmt.Errorf("update rule: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, errors.New("rule not found")
+	}
+	var rule model.GuardrailRule
+	if err := s.db.First(&rule, id).Error; err != nil {
+		return nil, fmt.Errorf("query updated rule: %w", err)
+	}
+	return &rule, nil
+}
+
+// DeleteRule 删除护栏规则
+func (s *Service) DeleteRule(id uint) error {
+	result := s.db.Delete(&model.GuardrailRule{}, id)
+	if result.Error != nil {
+		return fmt.Errorf("delete rule: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return errors.New("rule not found")

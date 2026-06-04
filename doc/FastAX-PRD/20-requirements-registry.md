@@ -1,3 +1,14 @@
+---
+domain: shared (registry)
+pdd_section: "§17"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: registry
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 17. 附录：需求注册表
 
 Flat lookup table for all 170+ requirement IDs. Each entry links to the source file for full details.
@@ -7,219 +18,219 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-REG-01 | P0 | 06-features/01-user-module.md | 手机号/邮箱+密码+验证码注册 |
-| F-REG-02 | P1 | 06-features/01-user-module.md | 企业用户注册需上传资质，管理员审核 |
-| F-REG-03 | P0 | 06-features/01-user-module.md | 账号密码/验证码登录，失败锁定 |
-| F-REG-04 | P1 | 06-features/01-user-module.md | 微信/支付宝/Google OAuth 登录 |
-| F-REG-05 | P0 | 06-features/01-user-module.md | JWT Token 认证，24h 过期，刷新机制 |
-| F-REG-06 | P1 | 06-features/01-user-module.md | 异地登录检测与提醒 |
-| F-REG-07 | P0 | 06-features/01-user-module.md | 海外用户仅邮箱+密码注册 |
-| F-REG-08 | P0 | 06-features/01-user-module.md | 国际验证码邮件发送 |
-| F-ACC-01 | P1 | 06-features/01-user-module.md | 修改个人信息 |
-| F-ACC-02 | P0 | 06-features/01-user-module.md | 重置密码 |
-| F-ACC-03 | P2 | 06-features/01-user-module.md | 绑定/解绑第三方账号 |
-| F-ACC-04 | P1 | 06-features/01-user-module.md | 企业子账号管理与限额 |
-| F-ACC-05 | P2 | 06-features/01-user-module.md | 查看用户等级和权限 |
-| F-ACC-06 | P0 | 06-features/01-user-module.md | 管理员进行用户等级管理 |
-| F-ACC-07 | P0 | 06-features/01-user-module.md | 违规用户警告/冻结/注销 |
+| F-REG-01 | P0 | 01-user-auth.md | 手机号/邮箱+密码+验证码注册 |
+| F-REG-02 | P1 | 01-user-auth.md | 企业用户注册需上传资质，管理员审核 |
+| F-REG-03 | P0 | 01-user-auth.md | 账号密码/验证码登录，失败锁定 |
+| F-REG-04 | P1 | 01-user-auth.md | 微信/支付宝/Google OAuth 登录 |
+| F-REG-05 | P0 | 01-user-auth.md | JWT Token 认证，24h 过期，刷新机制 |
+| F-REG-06 | P1 | 01-user-auth.md | 异地登录检测与提醒 |
+| F-REG-07 | P0 | 01-user-auth.md | 海外用户仅邮箱+密码注册 |
+| F-REG-08 | P0 | 01-user-auth.md | 国际验证码邮件发送 |
+| F-ACC-01 | P1 | 01-user-auth.md | 修改个人信息 |
+| F-ACC-02 | P0 | 01-user-auth.md | 重置密码 |
+| F-ACC-03 | P2 | 01-user-auth.md | 绑定/解绑第三方账号 |
+| F-ACC-04 | P1 | 01-user-auth.md | 企业子账号管理与限额 |
+| F-ACC-05 | P2 | 01-user-auth.md | 查看用户等级和权限 |
+| F-ACC-06 | P0 | 01-user-auth.md | 管理员进行用户等级管理 |
+| F-ACC-07 | P0 | 01-user-auth.md | 违规用户警告/冻结/注销 |
 
 #### Token 代理模块 (F-TKN, F-PXY, F-TUS, OCN, OCN-SUP, SUP, ROUTE)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-TKN-01 | P0 | 06-features/02-token-proxy-module.md | 对接全球主流 Token 供应商 |
-| F-TKN-02 | P2 | 06-features/02-token-proxy-module.md | 多种 Token 类型接入 |
-| F-TKN-03 | P0 | 06-features/02-token-proxy-module.md | 管理员查看供应商库存 |
-| F-TKN-04 | P0 | 06-features/02-token-proxy-module.md | 库存预警通知 |
-| F-TKN-05 | P1 | 06-features/02-token-proxy-module.md | Token 批量导入/导出 |
-| F-TKN-06 | P0 | 06-features/02-token-proxy-module.md | 多渠道配置与负载均衡 |
-| F-TKN-07 | P0 | 06-features/02-token-proxy-module.md | 渠道健康检测（5分钟/次） |
-| F-TKN-08 | P0 | 06-features/02-token-proxy-module.md | 管理员手动启用/禁用渠道 |
-| F-TKN-09 | P0 | 06-features/02-token-proxy-module.md | 销售价格与折扣设置 |
-| F-TKN-10 | P0 | 06-features/02-token-proxy-module.md | 价格透明展示 |
-| F-PXY-01 | P0 | 06-features/02-token-proxy-module.md | 标准化 OpenAI 兼容接口 |
-| F-PXY-02 | P0 | 06-features/02-token-proxy-module.md | 请求网关路由与加密传输 |
-| F-PXY-03 | P0 | 06-features/02-token-proxy-module.md | 流式输出支持 (SSE/WebSocket) |
-| F-PXY-04 | P1 | 06-features/02-token-proxy-module.md | 多协议兼容 (HTTP/WS/gRPC) |
-| F-PXY-05 | P0 | 06-features/02-token-proxy-module.md | 双轨智能路由 |
-| F-PXY-06 | P0 | 06-features/02-token-proxy-module.md | Token 实时验证 |
-| F-PXY-07 | P0 | 06-features/02-token-proxy-module.md | Token 调用日志记录 |
-| F-PXY-08 | P0 | 06-features/02-token-proxy-module.md | 请求速率限制 |
-| F-PXY-09 | P0 | 06-features/02-token-proxy-module.md | 国内模型 API→OpenAI 兼容适配 |
-| F-PXY-10 | P1 | 06-features/02-token-proxy-module.md | 国内模型文档与错误信息英文适配 |
-| F-TUS-01 | P0 | 06-features/02-token-proxy-module.md | 查看持有 Token 与使用记录 |
-| F-TUS-02 | P0 | 06-features/02-token-proxy-module.md | 购买/充值 Token 实时到账 |
-| F-TUS-03 | P1 | 06-features/02-token-proxy-module.md | Token 提取 |
-| F-TUS-04 | P1 | 06-features/02-token-proxy-module.md | Token 转让 |
-| F-TUS-05 | P0 | 06-features/02-token-proxy-module.md | Token 到期提醒 |
-| F-TUS-06 | P1 | 06-features/02-token-proxy-module.md | Token 续费 |
-| F-TUS-07 | P1 | 06-features/02-token-proxy-module.md | Token 托管服务 (AES-256) |
-| F-TUS-08 | P1 | 06-features/02-token-proxy-module.md | 企业子账号额度控制 |
-| OCN-01 | P0 | 06-features/02-token-proxy-module.md | 国内节点部署优化海外访问链路 |
-| OCN-02 | P0 | 06-features/02-token-proxy-module.md | 国内模型分类与展示（英文） |
-| OCN-03 | P0 | 06-features/02-token-proxy-module.md | 国内模型美元价格展示 |
-| OCN-04 | P1 | 06-features/02-token-proxy-module.md | 国内模型优劣势英文说明 |
-| OCN-05 | P0 | 06-features/02-token-proxy-module.md | 跨境合规提示 |
-| OCN-06 | P1 | 06-features/02-token-proxy-module.md | 国内模型调用量独立统计 |
-| OCN-SUP-01 | P0 | 06-features/02-token-proxy-module.md | 供应商区域分类管理 |
-| OCN-SUP-02 | P0 | 06-features/02-token-proxy-module.md | 国内供应商余额监控 |
-| OCN-SUP-03 | P0 | 06-features/02-token-proxy-module.md | 国内供应商渠道冗余配置 |
-| OCN-SUP-04 | P1 | 06-features/02-token-proxy-module.md | 国内模型兼容度报告 |
-| SUP-01 | P0 | 06-features/02-token-proxy-module.md | 供应商注册申请 |
-| SUP-02 | P0 | 06-features/02-token-proxy-module.md | 供应商资质审核 |
-| SUP-03 | P0 | 06-features/02-token-proxy-module.md | 供应商店铺管理 |
-| SUP-04 | P0 | 06-features/02-token-proxy-module.md | 商品上架与管理 |
-| SUP-05 | P0 | 06-features/02-token-proxy-module.md | 自主定价 |
-| SUP-06 | P1 | 06-features/02-token-proxy-module.md | 价格策略（折扣/促销） |
-| SUP-07 | P0 | 06-features/02-token-proxy-module.md | 供应商 API 注册 |
-| SUP-08 | P0 | 06-features/02-token-proxy-module.md | 供应商库存管理 |
-| SUP-09 | P0 | 06-features/02-token-proxy-module.md | 销售看板 |
-| SUP-10 | P0 | 06-features/02-token-proxy-module.md | 结算管理 |
-| SUP-11 | P1 | 06-features/02-token-proxy-module.md | 供应商通知 |
-| SUP-12 | P0 | 06-features/02-token-proxy-module.md | 供应商费率配置 |
-| SUP-13 | P2 | 06-features/02-token-proxy-module.md | 供应商评级与评价 |
-| SUP-14 | P0 | 06-features/02-token-proxy-module.md | 供应商违规处理 |
-| SUP-15 | P0 | 06-features/02-token-proxy-module.md | 供应商 API 健康监控 |
-| SUP-16 | P1 | 06-features/02-token-proxy-module.md | 供应商入驻协议在线签署 |
-| SUP-17 | P0 | 06-features/02-token-proxy-module.md | Adaptor 适配器接口（9 方法，参考 one-api relay/adaptor/interface.go） |
-| SUP-18 | P1 | 06-features/02-token-proxy-module.md | 渠道测试端点（参考 one-api TestChannel） |
-| SUP-19 | P1 | 06-features/02-token-proxy-module.md | 渠道类型双枚举 channeltype+apitype |
-| ROUTE-01 | P0 | 06-features/02-token-proxy-module.md | 渠道选择算法（Ability 索引 + 优先级分组+随机） |
-| ROUTE-02 | P0 | 06-features/02-token-proxy-module.md | 加权随机选择（同优先级组内权重随机） |
-| ROUTE-03 | P0 | 06-features/02-token-proxy-module.md | 自动故障转移 (Failover) |
-| ROUTE-04 | P0 | 06-features/02-token-proxy-module.md | 轻量熔断（5xx/超时自动禁用，排除 401/403/429） |
-| ROUTE-05 | P0 | 06-features/02-token-proxy-module.md | 实时健康检测（10秒/次） |
-| ROUTE-06 | P0 | 06-features/02-token-proxy-module.md | 延迟敏感路由 |
-| ROUTE-07 | P1 | 06-features/02-token-proxy-module.md | 成本优化路由 |
-| ROUTE-08 | P1 | 06-features/02-token-proxy-module.md | 时段性调度 |
-| ROUTE-09 | P0 | 06-features/02-token-proxy-module.md | 请求重写与透明转发 |
-| ROUTE-10 | P1 | 06-features/02-token-proxy-module.md | 模型自动发现 |
-| ROUTE-11 | P0 | 06-features/02-token-proxy-module.md | 请求级日志与全链路追踪 |
-| ROUTE-12 | P0 | 06-features/02-token-proxy-module.md | 流式请求故障转移 |
-| ROUTE-13 | P0 | 06-features/02-token-proxy-module.md | 限流与排队 |
-| ROUTE-14 | P1 | 06-features/02-token-proxy-module.md | 灰度路由 |
-| ROUTE-15 | P1 | 06-features/02-token-proxy-module.md | 供应商配额展示 |
-| ROUTE-16 | P0 | 06-features/02-token-proxy-module.md | 路由规则热加载（SyncChannelCache 定时刷新） |
-| ROUTE-17 | P0 | 06-features/02-token-proxy-module.md | Ability 索引表+内存缓存（group+model+channel 复合索引） |
-| ROUTE-18 | P1 | 06-features/02-token-proxy-module.md | Token 长度路由（按输入 token 数量选择模型）🆕 v3.1 |
-| ROUTE-19 | P1 | 06-features/02-token-proxy-module.md | 内容类型路由（图片/视频/音频→多模态渠道）🆕 v3.1 |
-| ROUTE-20 | P1 | 06-features/02-token-proxy-module.md | 最低成本路由（enable_least_cost_routing）🆕 v3.1 |
-| ROUTE-21 | P2 | 06-features/02-token-proxy-module.md | 延迟感知负载均衡（P2C/PeakEWMA 算法）🆕 v3.1 |
-| ROUTE-22 | P2 | 06-features/02-token-proxy-module.md | 路由规则即时热更新（WebSocket <1s 生效）🆕 v3.1 |
+| F-TKN-01 | P0 | 02-token-proxy-vendor.md | 对接全球主流 Token 供应商 |
+| F-TKN-02 | P2 | 02-token-proxy-vendor.md | 多种 Token 类型接入 |
+| F-TKN-03 | P0 | 02-token-proxy-vendor.md | 管理员查看供应商库存 |
+| F-TKN-04 | P0 | 02-token-proxy-vendor.md | 库存预警通知 |
+| F-TKN-05 | P1 | 02-token-proxy-vendor.md | Token 批量导入/导出 |
+| F-TKN-06 | P0 | 02-token-proxy-vendor.md | 多渠道配置与负载均衡 |
+| F-TKN-07 | P0 | 02-token-proxy-vendor.md | 渠道健康检测（5分钟/次） |
+| F-TKN-08 | P0 | 02-token-proxy-vendor.md | 管理员手动启用/禁用渠道 |
+| F-TKN-09 | P0 | 02-token-proxy-vendor.md | 销售价格与折扣设置 |
+| F-TKN-10 | P0 | 02-token-proxy-vendor.md | 价格透明展示 |
+| F-PXY-01 | P0 | 02-token-proxy-vendor.md | 标准化 OpenAI 兼容接口 |
+| F-PXY-02 | P0 | 02-token-proxy-vendor.md | 请求网关路由与加密传输 |
+| F-PXY-03 | P0 | 02-token-proxy-vendor.md | 流式输出支持 (SSE/WebSocket) |
+| F-PXY-04 | P1 | 02-token-proxy-vendor.md | 多协议兼容 (HTTP/WS/gRPC) |
+| F-PXY-05 | P0 | 02-token-proxy-vendor.md | 双轨智能路由 |
+| F-PXY-06 | P0 | 02-token-proxy-vendor.md | Token 实时验证 |
+| F-PXY-07 | P0 | 02-token-proxy-vendor.md | Token 调用日志记录 |
+| F-PXY-08 | P0 | 02-token-proxy-vendor.md | 请求速率限制 |
+| F-PXY-09 | P0 | 02-token-proxy-vendor.md | 国内模型 API→OpenAI 兼容适配 |
+| F-PXY-10 | P1 | 02-token-proxy-vendor.md | 国内模型文档与错误信息英文适配 |
+| F-TUS-01 | P0 | 02-token-proxy-vendor.md | 查看持有 Token 与使用记录 |
+| F-TUS-02 | P0 | 02-token-proxy-vendor.md | 购买/充值 Token 实时到账 |
+| F-TUS-03 | P1 | 02-token-proxy-vendor.md | Token 提取 |
+| F-TUS-04 | P1 | 02-token-proxy-vendor.md | Token 转让 |
+| F-TUS-05 | P0 | 02-token-proxy-vendor.md | Token 到期提醒 |
+| F-TUS-06 | P1 | 02-token-proxy-vendor.md | Token 续费 |
+| F-TUS-07 | P1 | 02-token-proxy-vendor.md | Token 托管服务 (AES-256) |
+| F-TUS-08 | P1 | 02-token-proxy-vendor.md | 企业子账号额度控制 |
+| OCN-01 | P0 | 02-token-proxy-vendor.md | 国内节点部署优化海外访问链路 |
+| OCN-02 | P0 | 02-token-proxy-vendor.md | 国内模型分类与展示（英文） |
+| OCN-03 | P0 | 02-token-proxy-vendor.md | 国内模型美元价格展示 |
+| OCN-04 | P1 | 02-token-proxy-vendor.md | 国内模型优劣势英文说明 |
+| OCN-05 | P0 | 02-token-proxy-vendor.md | 跨境合规提示 |
+| OCN-06 | P1 | 02-token-proxy-vendor.md | 国内模型调用量独立统计 |
+| OCN-SUP-01 | P0 | 02-token-proxy-vendor.md | 供应商区域分类管理 |
+| OCN-SUP-02 | P0 | 02-token-proxy-vendor.md | 国内供应商余额监控 |
+| OCN-SUP-03 | P0 | 02-token-proxy-vendor.md | 国内供应商渠道冗余配置 |
+| OCN-SUP-04 | P1 | 02-token-proxy-vendor.md | 国内模型兼容度报告 |
+| SUP-01 | P0 | 02-token-proxy-vendor.md | 供应商注册申请 |
+| SUP-02 | P0 | 02-token-proxy-vendor.md | 供应商资质审核 |
+| SUP-03 | P0 | 02-token-proxy-vendor.md | 供应商店铺管理 |
+| SUP-04 | P0 | 02-token-proxy-vendor.md | 商品上架与管理 |
+| SUP-05 | P0 | 02-token-proxy-vendor.md | 自主定价 |
+| SUP-06 | P1 | 02-token-proxy-vendor.md | 价格策略（折扣/促销） |
+| SUP-07 | P0 | 02-token-proxy-vendor.md | 供应商 API 注册 |
+| SUP-08 | P0 | 02-token-proxy-vendor.md | 供应商库存管理 |
+| SUP-09 | P0 | 02-token-proxy-vendor.md | 销售看板 |
+| SUP-10 | P0 | 02-token-proxy-vendor.md | 结算管理 |
+| SUP-11 | P1 | 02-token-proxy-vendor.md | 供应商通知 |
+| SUP-12 | P0 | 02-token-proxy-vendor.md | 供应商费率配置 |
+| SUP-13 | P2 | 02-token-proxy-vendor.md | 供应商评级与评价 |
+| SUP-14 | P0 | 02-token-proxy-vendor.md | 供应商违规处理 |
+| SUP-15 | P0 | 02-token-proxy-vendor.md | 供应商 API 健康监控 |
+| SUP-16 | P1 | 02-token-proxy-vendor.md | 供应商入驻协议在线签署 |
+| SUP-17 | P0 | 02-token-proxy-vendor.md | Adaptor 适配器接口（9 方法，参考 one-api relay/adaptor/interface.go） |
+| SUP-18 | P1 | 02-token-proxy-vendor.md | 渠道测试端点（参考 one-api TestChannel） |
+| SUP-19 | P1 | 02-token-proxy-vendor.md | 渠道类型双枚举 channeltype+apitype |
+| ROUTE-01 | P0 | 02-token-proxy-vendor.md | 渠道选择算法（Ability 索引 + 优先级分组+随机） |
+| ROUTE-02 | P0 | 02-token-proxy-vendor.md | 加权随机选择（同优先级组内权重随机） |
+| ROUTE-03 | P0 | 02-token-proxy-vendor.md | 自动故障转移 (Failover) |
+| ROUTE-04 | P0 | 02-token-proxy-vendor.md | 轻量熔断（5xx/超时自动禁用，排除 401/403/429） |
+| ROUTE-05 | P0 | 02-token-proxy-vendor.md | 实时健康检测（10秒/次） |
+| ROUTE-06 | P0 | 02-token-proxy-vendor.md | 延迟敏感路由 |
+| ROUTE-07 | P1 | 02-token-proxy-vendor.md | 成本优化路由 |
+| ROUTE-08 | P1 | 02-token-proxy-vendor.md | 时段性调度 |
+| ROUTE-09 | P0 | 02-token-proxy-vendor.md | 请求重写与透明转发 |
+| ROUTE-10 | P1 | 02-token-proxy-vendor.md | 模型自动发现 |
+| ROUTE-11 | P0 | 02-token-proxy-vendor.md | 请求级日志与全链路追踪 |
+| ROUTE-12 | P0 | 02-token-proxy-vendor.md | 流式请求故障转移 |
+| ROUTE-13 | P0 | 02-token-proxy-vendor.md | 限流与排队 |
+| ROUTE-14 | P1 | 02-token-proxy-vendor.md | 灰度路由 |
+| ROUTE-15 | P1 | 02-token-proxy-vendor.md | 供应商配额展示 |
+| ROUTE-16 | P0 | 02-token-proxy-vendor.md | 路由规则热加载（SyncChannelCache 定时刷新） |
+| ROUTE-17 | P0 | 02-token-proxy-vendor.md | Ability 索引表+内存缓存（group+model+channel 复合索引） |
+| ROUTE-18 | P1 | 02-token-proxy-vendor.md | Token 长度路由（按输入 token 数量选择模型）🆕 v3.1 |
+| ROUTE-19 | P1 | 02-token-proxy-vendor.md | 内容类型路由（图片/视频/音频→多模态渠道）🆕 v3.1 |
+| ROUTE-20 | P1 | 02-token-proxy-vendor.md | 最低成本路由（enable_least_cost_routing）🆕 v3.1 |
+| ROUTE-21 | P2 | 02-token-proxy-vendor.md | 延迟感知负载均衡（P2C/PeakEWMA 算法）🆕 v3.1 |
+| ROUTE-22 | P2 | 02-token-proxy-vendor.md | 路由规则即时热更新（WebSocket <1s 生效）🆕 v3.1 |
 
 #### 交易模块 (F-ORD, F-PAY)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-ORD-01 | P0 | 06-features/03-trade-module.md | 订单自动生成 |
-| F-ORD-02 | P0 | 06-features/03-trade-module.md | 订单状态流转 |
-| F-ORD-03 | P0 | 06-features/03-trade-module.md | 待支付订单超时取消 |
-| F-ORD-04 | P1 | 06-features/03-trade-module.md | 用户申请退款 |
-| F-ORD-05 | P0 | 06-features/03-trade-module.md | 订单查询 |
-| F-ORD-06 | P0 | 06-features/03-trade-module.md | 管理员订单管理 |
-| F-PAY-01 | P0 | 06-features/03-trade-module.md | 微信/支付宝/银行卡支付 |
-| F-PAY-02 | P0 | 06-features/03-trade-module.md | Stripe 海外支付 |
-| F-PAY-03 | P0 | 06-features/03-trade-module.md | 支付加密与状态同步 |
-| F-PAY-04 | P1 | 06-features/03-trade-module.md | 自动对账报表 |
-| F-PAY-05 | P1 | 06-features/03-trade-module.md | 对账报表导出 |
-| F-PAY-06 | P2 | 06-features/03-trade-module.md | 分销佣金系统 |
-| F-PAY-07 | P1 | 06-features/03-trade-module.md | 手续费规则配置 |
-| F-PAY-08 | P0 | 06-features/03-trade-module.md | 供应商结算管理 |
-| F-PAY-09 | P0 | 06-features/03-trade-module.md | 平台佣金计算 |
+| F-ORD-01 | P0 | 03-order-payment.md | 订单自动生成 |
+| F-ORD-02 | P0 | 03-order-payment.md | 订单状态流转 |
+| F-ORD-03 | P0 | 03-order-payment.md | 待支付订单超时取消 |
+| F-ORD-04 | P1 | 03-order-payment.md | 用户申请退款 |
+| F-ORD-05 | P0 | 03-order-payment.md | 订单查询 |
+| F-ORD-06 | P0 | 03-order-payment.md | 管理员订单管理 |
+| F-PAY-01 | P0 | 03-order-payment.md | 微信/支付宝/银行卡支付 |
+| F-PAY-02 | P0 | 03-order-payment.md | Stripe 海外支付 |
+| F-PAY-03 | P0 | 03-order-payment.md | 支付加密与状态同步 |
+| F-PAY-04 | P1 | 03-order-payment.md | 自动对账报表 |
+| F-PAY-05 | P1 | 03-order-payment.md | 对账报表导出 |
+| F-PAY-06 | P2 | 03-order-payment.md | 分销佣金系统 |
+| F-PAY-07 | P1 | 03-order-payment.md | 手续费规则配置 |
+| F-PAY-08 | P0 | 03-order-payment.md | 供应商结算管理 |
+| F-PAY-09 | P0 | 03-order-payment.md | 平台佣金计算 |
 
 #### 风控模块 (F-RISK, F-SEC)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-RISK-01 | P1 | 06-features/04-risk-control.md | 设备指纹识别 |
-| F-RISK-02 | P0 | 06-features/04-risk-control.md | AI 风控引擎实时分析 |
-| F-RISK-03 | P1 | 06-features/04-risk-control.md | 自定义风控规则 |
-| F-RISK-04 | P0 | 06-features/04-risk-control.md | Token 防刷保护 |
-| F-RISK-05 | P0 | 06-features/04-risk-control.md | 异常事件预警与分级处置 |
-| F-SEC-01 | P0 | 06-features/04-risk-control.md | 账号防盗与二次验证 |
-| F-SEC-02 | P0 | 06-features/04-risk-control.md | 密码复杂度要求 |
-| F-SEC-03 | P0 | 06-features/04-risk-control.md | 数据加密 (BCrypt/AES-256) |
-| F-SEC-04 | P1 | 06-features/04-risk-control.md | 接口签名验证 |
-| F-SEC-05 | P0 | 06-features/04-risk-control.md | 接口限流 |
-| F-SEC-06 | P0 | 06-features/04-risk-control.md | 接口权限校验 (JWT) |
+| F-RISK-01 | P1 | 04-risk.md | 设备指纹识别 |
+| F-RISK-02 | P0 | 04-risk.md | AI 风控引擎实时分析 |
+| F-RISK-03 | P1 | 04-risk.md | 自定义风控规则 |
+| F-RISK-04 | P0 | 04-risk.md | Token 防刷保护 |
+| F-RISK-05 | P0 | 04-risk.md | 异常事件预警与分级处置 |
+| F-SEC-01 | P0 | 04-risk.md | 账号防盗与二次验证 |
+| F-SEC-02 | P0 | 04-risk.md | 密码复杂度要求 |
+| F-SEC-03 | P0 | 04-risk.md | 数据加密 (BCrypt/AES-256) |
+| F-SEC-04 | P1 | 04-risk.md | 接口签名验证 |
+| F-SEC-05 | P0 | 04-risk.md | 接口限流 |
+| F-SEC-06 | P0 | 04-risk.md | 接口权限校验 (JWT) |
 
 #### 统计分析 (F-STAT)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-STAT-01 | P0 | 06-features/05-statistics.md | 核心数据统计看板 |
-| F-STAT-02 | P2 | 06-features/05-statistics.md | 用户行为分析 |
-| F-STAT-03 | P1 | 06-features/05-statistics.md | Token 用量统计与趋势 |
-| F-STAT-04 | P1 | 06-features/05-statistics.md | 交易报表 |
-| F-STAT-05 | P2 | 06-features/05-statistics.md | 用户分层与运营支持 |
-| F-STAT-06 | P1 | 06-features/05-statistics.md | 系统性能监控报表 |
-| F-STAT-07 | P1 | 06-features/05-statistics.md | 多语言翻译覆盖率统计 |
+| F-STAT-01 | P0 | 05-notify-stats-admin.md | 核心数据统计看板 |
+| F-STAT-02 | P2 | 05-notify-stats-admin.md | 用户行为分析 |
+| F-STAT-03 | P1 | 05-notify-stats-admin.md | Token 用量统计与趋势 |
+| F-STAT-04 | P1 | 05-notify-stats-admin.md | 交易报表 |
+| F-STAT-05 | P2 | 05-notify-stats-admin.md | 用户分层与运营支持 |
+| F-STAT-06 | P1 | 05-notify-stats-admin.md | 系统性能监控报表 |
+| F-STAT-07 | P1 | 05-notify-stats-admin.md | 多语言翻译覆盖率统计 |
 
 #### 通知模块 (F-NOT)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-NOT-01 | P0 | 06-features/06-notification.md | 站内信通知 |
-| F-NOT-02 | P0 | 06-features/06-notification.md | 短信通知 |
-| F-NOT-03 | P1 | 06-features/06-notification.md | 邮件通知 |
-| F-NOT-04 | P2 | 06-features/06-notification.md | 通知模板管理与配置 |
-| F-NOT-05 | P0 | 06-features/06-notification.md | 通知模板多语言 |
+| F-NOT-01 | P0 | 05-notify-stats-admin.md | 站内信通知 |
+| F-NOT-02 | P0 | 05-notify-stats-admin.md | 短信通知 |
+| F-NOT-03 | P1 | 05-notify-stats-admin.md | 邮件通知 |
+| F-NOT-04 | P2 | 05-notify-stats-admin.md | 通知模板管理与配置 |
+| F-NOT-05 | P0 | 05-notify-stats-admin.md | 通知模板多语言 |
 
 #### 运营工具 (F-OP)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-OP-01 | P2 | 06-features/07-operations.md | 优惠券发放与管理 |
-| F-OP-02 | P2 | 06-features/07-operations.md | 限时活动配置 |
-| F-OP-03 | P2 | 06-features/07-operations.md | 邀请有礼功能 |
-| F-OP-04 | P2 | 06-features/07-operations.md | 活动数据统计与分析 |
+| F-OP-01 | P2 | 05-notify-stats-admin.md | 优惠券发放与管理 |
+| F-OP-02 | P2 | 05-notify-stats-admin.md | 限时活动配置 |
+| F-OP-03 | P2 | 05-notify-stats-admin.md | 邀请有礼功能 |
+| F-OP-04 | P2 | 05-notify-stats-admin.md | 活动数据统计与分析 |
 
 #### 管理后台 (F-ADM)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| F-ADM-01 | P0 | 06-features/08-admin-panel.md | 控制台运营概览 |
-| F-ADM-02 | P0 | 06-features/08-admin-panel.md | 用户管理列表 |
-| F-ADM-03 | P0 | 06-features/08-admin-panel.md | Token 管理 |
-| F-ADM-04 | P0 | 06-features/08-admin-panel.md | 交易管理 |
-| F-ADM-05 | P0 | 06-features/08-admin-panel.md | 风控管理 |
-| F-ADM-06 | P1 | 06-features/08-admin-panel.md | 系统管理 |
-| F-ADM-07 | P1 | 06-features/08-admin-panel.md | 操作日志 |
-| F-ADM-08 | P0 | 06-features/08-admin-panel.md | 多语言支持配置 |
-| F-ADM-09 | P2 | 06-features/08-admin-panel.md | 多货币支持配置 |
+| F-ADM-01 | P0 | 05-notify-stats-admin.md | 控制台运营概览 |
+| F-ADM-02 | P0 | 05-notify-stats-admin.md | 用户管理列表 |
+| F-ADM-03 | P0 | 05-notify-stats-admin.md | Token 管理 |
+| F-ADM-04 | P0 | 05-notify-stats-admin.md | 交易管理 |
+| F-ADM-05 | P0 | 05-notify-stats-admin.md | 风控管理 |
+| F-ADM-06 | P1 | 05-notify-stats-admin.md | 系统管理 |
+| F-ADM-07 | P1 | 05-notify-stats-admin.md | 操作日志 |
+| F-ADM-08 | P0 | 05-notify-stats-admin.md | 多语言支持配置 |
+| F-ADM-09 | P2 | 05-notify-stats-admin.md | 多货币支持配置 |
 
 #### 多语言模块 (LANG)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| LANG-01-01 | P0 | 06-features/09-i18n-module.md | 浏览器语言自动检测 |
-| LANG-01-02 | P0 | 06-features/09-i18n-module.md | 语言选择器 |
-| LANG-01-03 | P0 | 06-features/09-i18n-module.md | 语言持久化 |
-| LANG-01-04 | P1 | 06-features/09-i18n-module.md | 登录态多设备同步 |
-| LANG-01-05 | P2 | 06-features/09-i18n-module.md | URL 路径语言标识 |
-| LANG-01-06 | P0 | 06-features/09-i18n-module.md | 语言回退策略 |
-| LANG-01-07 | P1 | 06-features/09-i18n-module.md | 语言选择器推荐语言 |
-| LANG-02-01 | P0 | 06-features/09-i18n-module.md | 静态文案翻译 (t()) |
-| LANG-02-02 | P0 | 06-features/09-i18n-module.md | 动态文案本地化 |
-| LANG-02-03 | P0 | 06-features/09-i18n-module.md | 占位符与插值 |
-| LANG-02-04 | P1 | 06-features/09-i18n-module.md | 复数形式支持 |
-| LANG-02-05 | P0 | 06-features/09-i18n-module.md | 日期/时间本地化 |
-| LANG-02-06 | P1 | 06-features/09-i18n-module.md | 数字本地化 |
-| LANG-02-07 | P1 | 06-features/09-i18n-module.md | 货币格式本地化 |
-| LANG-02-08 | P2 | 06-features/09-i18n-module.md | RTL 布局预留 |
-| LANG-03-01 | P0 | 06-features/09-i18n-module.md | 邮件模板多语言 |
-| LANG-03-02 | P0 | 06-features/09-i18n-module.md | 短信模板多语言 |
-| LANG-03-03 | P0 | 06-features/09-i18n-module.md | 站内信多语言 |
-| LANG-03-04 | P1 | 06-features/09-i18n-module.md | 模板语言选择策略 |
-| LANG-04-01 | P0 | 06-features/09-i18n-module.md | 语言列表配置 |
-| LANG-04-02 | P0 | 06-features/09-i18n-module.md | 语言切换展示 |
-| LANG-05-01 | P0 | 06-features/09-i18n-module.md | 开发者文档多语言 |
-| LANG-05-02 | P1 | 06-features/09-i18n-module.md | API 错误消息多语言 |
-| LANG-05-03 | P1 | 06-features/09-i18n-module.md | API 响应多语言字段 |
-| LANG-05-04 | P1 | 06-features/09-i18n-module.md | 代码示例多语言 |
-| LANG-06-01 | P1 | 06-features/09-i18n-module.md | FAQ 多语言 |
-| LANG-06-02 | P1 | 06-features/09-i18n-module.md | 工单系统语言标识 |
-| LANG-06-03 | P2 | 06-features/09-i18n-module.md | 预置回复多语言 |
+| LANG-01-01 | P0 | 06-i18n.md | 浏览器语言自动检测 |
+| LANG-01-02 | P0 | 06-i18n.md | 语言选择器 |
+| LANG-01-03 | P0 | 06-i18n.md | 语言持久化 |
+| LANG-01-04 | P1 | 06-i18n.md | 登录态多设备同步 |
+| LANG-01-05 | P2 | 06-i18n.md | URL 路径语言标识 |
+| LANG-01-06 | P0 | 06-i18n.md | 语言回退策略 |
+| LANG-01-07 | P1 | 06-i18n.md | 语言选择器推荐语言 |
+| LANG-02-01 | P0 | 06-i18n.md | 静态文案翻译 (t()) |
+| LANG-02-02 | P0 | 06-i18n.md | 动态文案本地化 |
+| LANG-02-03 | P0 | 06-i18n.md | 占位符与插值 |
+| LANG-02-04 | P1 | 06-i18n.md | 复数形式支持 |
+| LANG-02-05 | P0 | 06-i18n.md | 日期/时间本地化 |
+| LANG-02-06 | P1 | 06-i18n.md | 数字本地化 |
+| LANG-02-07 | P1 | 06-i18n.md | 货币格式本地化 |
+| LANG-02-08 | P2 | 06-i18n.md | RTL 布局预留 |
+| LANG-03-01 | P0 | 06-i18n.md | 邮件模板多语言 |
+| LANG-03-02 | P0 | 06-i18n.md | 短信模板多语言 |
+| LANG-03-03 | P0 | 06-i18n.md | 站内信多语言 |
+| LANG-03-04 | P1 | 06-i18n.md | 模板语言选择策略 |
+| LANG-04-01 | P0 | 06-i18n.md | 语言列表配置 |
+| LANG-04-02 | P0 | 06-i18n.md | 语言切换展示 |
+| LANG-05-01 | P0 | 06-i18n.md | 开发者文档多语言 |
+| LANG-05-02 | P1 | 06-i18n.md | API 错误消息多语言 |
+| LANG-05-03 | P1 | 06-i18n.md | API 响应多语言字段 |
+| LANG-05-04 | P1 | 06-i18n.md | 代码示例多语言 |
+| LANG-06-01 | P1 | 06-i18n.md | FAQ 多语言 |
+| LANG-06-02 | P1 | 06-i18n.md | 工单系统语言标识 |
+| LANG-06-03 | P2 | 06-i18n.md | 预置回复多语言 |
 
 #### 非功能需求 (R-*)
 
@@ -320,111 +331,111 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| PROTO-01 | P0 | 06-features/10-multi-protocol.md | Anthropic Messages API 原生支持 |
-| PROTO-02 | P0 | 06-features/10-multi-protocol.md | Gemini API 原生支持 |
-| PROTO-03 | P1 | 06-features/10-multi-protocol.md | OpenAI Realtime API 代理 |
-| PROTO-04 | P0 | 06-features/10-multi-protocol.md | 协议自动检测与转换 |
-| PROTO-05 | P1 | 06-features/10-multi-protocol.md | 模型后缀变体（Model Suffix） |
-| PROTO-06 | P1 | 06-features/10-multi-protocol.md | 模型自动发现 |
-| PROTO-07 | P1 | 06-features/10-multi-protocol.md | 模型重命名/别名 |
-| PROTO-08 | P2 | 06-features/10-multi-protocol.md | Rerank 模型支持 |
-| PROTO-09 | P1 | 06-features/10-multi-protocol.md | Embeddings 多供应商路由 |
-| PROTO-10 | P1 | 06-features/10-multi-protocol.md | MCP 协议支持 |
+| PROTO-01 | P0 | 07-multi-protocol.md | Anthropic Messages API 原生支持 |
+| PROTO-02 | P0 | 07-multi-protocol.md | Gemini API 原生支持 |
+| PROTO-03 | P1 | 07-multi-protocol.md | OpenAI Realtime API 代理 |
+| PROTO-04 | P0 | 07-multi-protocol.md | 协议自动检测与转换 |
+| PROTO-05 | P1 | 07-multi-protocol.md | 模型后缀变体（Model Suffix） |
+| PROTO-06 | P1 | 07-multi-protocol.md | 模型自动发现 |
+| PROTO-07 | P1 | 07-multi-protocol.md | 模型重命名/别名 |
+| PROTO-08 | P2 | 07-multi-protocol.md | Rerank 模型支持 |
+| PROTO-09 | P1 | 07-multi-protocol.md | Embeddings 多供应商路由 |
+| PROTO-10 | P1 | 07-multi-protocol.md | MCP 协议支持 |
 
 #### 多模态支持 (MEDIA)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| MEDIA-01 | P1 | 06-features/11-multimodal.md | 图片生成统一 API |
-| MEDIA-02 | P2 | 06-features/11-multimodal.md | 视频生成支持 |
-| MEDIA-03 | P1 | 06-features/11-multimodal.md | 语音合成/识别统一 API |
-| MEDIA-04 | P2 | 06-features/11-multimodal.md | 音乐生成支持 |
-| MEDIA-05 | P1 | 06-features/11-multimodal.md | 多模态路由与故障转移 |
-| MEDIA-06 | P1 | 06-features/11-multimodal.md | 多模态成本追踪 |
-| MEDIA-07 | P1 | 06-features/11-multimodal.md | 媒体内容审核 |
+| MEDIA-01 | P1 | 08-multimedia.md | 图片生成统一 API |
+| MEDIA-02 | P2 | 08-multimedia.md | 视频生成支持 |
+| MEDIA-03 | P1 | 08-multimedia.md | 语音合成/识别统一 API |
+| MEDIA-04 | P2 | 08-multimedia.md | 音乐生成支持 |
+| MEDIA-05 | P1 | 08-multimedia.md | 多模态路由与故障转移 |
+| MEDIA-06 | P1 | 08-multimedia.md | 多模态成本追踪 |
+| MEDIA-07 | P1 | 08-multimedia.md | 媒体内容审核 |
 
 #### 安全护栏 (GRDL)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| GRDL-01 | P0 | 06-features/12-guardrails.md | PII 检测与脱敏 |
-| GRDL-02 | P0 | 06-features/12-guardrails.md | Prompt 注入检测 |
-| GRDL-03 | P1 | 06-features/12-guardrails.md | 内容审核 |
-| GRDL-04 | P0 | 06-features/12-guardrails.md | 密钥扫描 |
-| GRDL-05 | P0 | 06-features/12-guardrails.md | 护栏执行模式 |
-| GRDL-06 | P1 | 06-features/12-guardrails.md | 自定义护栏规则 |
-| GRDL-07 | P0 | 06-features/12-guardrails.md | 不可篡改审计日志 |
-| GRDL-08 | P0 | 06-features/12-guardrails.md | 护栏流水线 |
-| GRDL-09 | P1 | 06-features/12-guardrails.md | 合规报告导出 |
-| GRDL-10 | P1 | 06-features/12-guardrails.md | 流式护栏（SSE 流中途截断/打码）🆕 v3.1 |
-| GRDL-11 | P1 | 06-features/12-guardrails.md | DLP 数据丢失防护（输入+输出双扫描）🆕 v3.1 |
-| GRDL-12 | P1 | 06-features/12-guardrails.md | 自定义正则替换（脱敏/替换敏感内容）🆕 v3.1 |
-| GRDL-13 | P2 | 06-features/12-guardrails.md | 工具级拦截（function_call/code_interpreter/MCP）🆕 v3.1 |
-| GRDL-14 | P2 | 06-features/12-guardrails.md | 第三方护栏集成接口（标准化适配器）🆕 v3.1 |
+| GRDL-01 | P0 | 09-guardrails.md | PII 检测与脱敏 |
+| GRDL-02 | P0 | 09-guardrails.md | Prompt 注入检测 |
+| GRDL-03 | P1 | 09-guardrails.md | 内容审核 |
+| GRDL-04 | P0 | 09-guardrails.md | 密钥扫描 |
+| GRDL-05 | P0 | 09-guardrails.md | 护栏执行模式 |
+| GRDL-06 | P1 | 09-guardrails.md | 自定义护栏规则 |
+| GRDL-07 | P0 | 09-guardrails.md | 不可篡改审计日志 |
+| GRDL-08 | P0 | 09-guardrails.md | 护栏流水线 |
+| GRDL-09 | P1 | 09-guardrails.md | 合规报告导出 |
+| GRDL-10 | P1 | 09-guardrails.md | 流式护栏（SSE 流中途截断/打码）🆕 v3.1 |
+| GRDL-11 | P1 | 09-guardrails.md | DLP 数据丢失防护（输入+输出双扫描）🆕 v3.1 |
+| GRDL-12 | P1 | 09-guardrails.md | 自定义正则替换（脱敏/替换敏感内容）🆕 v3.1 |
+| GRDL-13 | P2 | 09-guardrails.md | 工具级拦截（function_call/code_interpreter/MCP）🆕 v3.1 |
+| GRDL-14 | P2 | 09-guardrails.md | 第三方护栏集成接口（标准化适配器）🆕 v3.1 |
 
 #### BYOK (自带 Key)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| BYOK-01 | P1 | 06-features/13-byok.md | 用户管理自有 API Key |
-| BYOK-02 | P1 | 06-features/13-byok.md | BYOK + 平台 Token 混合路由 |
-| BYOK-03 | P1 | 06-features/13-byok.md | BYOK 用量看板 |
-| BYOK-04 | P1 | 06-features/13-byok.md | Key 轮换与过期管理 |
-| BYOK-05 | P2 | 06-features/13-byok.md | 团队 Key 共享 |
-| BYOK-06 | P1 | 06-features/13-byok.md | BYOK 模型限制 |
-| BYOK-07 | P1 | 06-features/13-byok.md | BYOK 平台费用 |
+| BYOK-01 | P1 | 10-byok.md | 用户管理自有 API Key |
+| BYOK-02 | P1 | 10-byok.md | BYOK + 平台 Token 混合路由 |
+| BYOK-03 | P1 | 10-byok.md | BYOK 用量看板 |
+| BYOK-04 | P1 | 10-byok.md | Key 轮换与过期管理 |
+| BYOK-05 | P2 | 10-byok.md | 团队 Key 共享 |
+| BYOK-06 | P1 | 10-byok.md | BYOK 模型限制 |
+| BYOK-07 | P1 | 10-byok.md | BYOK 平台费用 |
 
 #### 插件/扩展系统 (PLUG)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| PLUG-01 | P2 | 06-features/14-plugin-system.md | 中间件流水线 |
-| PLUG-02 | P2 | 06-features/14-plugin-system.md | 自定义路由策略插件 |
-| PLUG-03 | P2 | 06-features/14-plugin-system.md | Webhook 转换 |
-| PLUG-04 | P2 | 06-features/14-plugin-system.md | 限流策略插件 |
-| PLUG-05 | P2 | 06-features/14-plugin-system.md | 监控插件接口 |
-| PLUG-06 | P3 | 06-features/14-plugin-system.md | 插件市场 |
-| PLUG-07 | P2 | 06-features/14-plugin-system.md | 插件沙箱隔离 |
+| PLUG-01 | P2 | 11-plugin.md | 中间件流水线 |
+| PLUG-02 | P2 | 11-plugin.md | 自定义路由策略插件 |
+| PLUG-03 | P2 | 11-plugin.md | Webhook 转换 |
+| PLUG-04 | P2 | 11-plugin.md | 限流策略插件 |
+| PLUG-05 | P2 | 11-plugin.md | 监控插件接口 |
+| PLUG-06 | P3 | 11-plugin.md | 插件市场 |
+| PLUG-07 | P2 | 11-plugin.md | 插件沙箱隔离 |
 
 #### 成本优化引擎 (COST)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| COST-01 | P1 | 06-features/15-cost-optimization.md | 上游 Prompt Caching |
-| COST-02 | P2 | 06-features/15-cost-optimization.md | 语义缓存 |
-| COST-03 | P1 | 06-features/15-cost-optimization.md | 缓存计费比率配置 |
-| COST-04 | P0 | 06-features/15-cost-optimization.md | 预算封顶 |
-| COST-05 | P0 | 06-features/15-cost-optimization.md | 成本告警 Webhook |
-| COST-06 | P1 | 06-features/15-cost-optimization.md | 成本感知路由 |
-| COST-07 | P1 | 06-features/15-cost-optimization.md | 模型回退链 |
-| COST-08 | P2 | 06-features/15-cost-optimization.md | Token 压缩 |
-| COST-09 | P2 | 06-features/15-cost-optimization.md | 上下文压缩网关（超阈值自动压缩，节省 40-70%）🆕 v3.1 |
-| COST-10 | P2 | 06-features/15-cost-optimization.md | 分层上下文策略（T0-T3 四层结构）🆕 v3.1 |
-| COST-11 | P2 | 06-features/15-cost-optimization.md | 碳感知路由（电网碳强度参与路由决策）🆕 v3.1 |
+| COST-01 | P1 | 12-cost-optimization.md | 上游 Prompt Caching |
+| COST-02 | P2 | 12-cost-optimization.md | 语义缓存 |
+| COST-03 | P1 | 12-cost-optimization.md | 缓存计费比率配置 |
+| COST-04 | P0 | 12-cost-optimization.md | 预算封顶 |
+| COST-05 | P0 | 12-cost-optimization.md | 成本告警 Webhook |
+| COST-06 | P1 | 12-cost-optimization.md | 成本感知路由 |
+| COST-07 | P1 | 12-cost-optimization.md | 模型回退链 |
+| COST-08 | P2 | 12-cost-optimization.md | Token 压缩 |
+| COST-09 | P2 | 12-cost-optimization.md | 上下文压缩网关（超阈值自动压缩，节省 40-70%）🆕 v3.1 |
+| COST-10 | P2 | 12-cost-optimization.md | 分层上下文策略（T0-T3 四层结构）🆕 v3.1 |
+| COST-11 | P2 | 12-cost-optimization.md | 碳感知路由（电网碳强度参与路由决策）🆕 v3.1 |
 
 #### 企业功能 (ENT)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| ENT-01 | P2 | 06-features/16-enterprise.md | SSO/SAML/OIDC 集成 |
-| ENT-02 | P1 | 06-features/16-enterprise.md | 团队/项目隔离 |
-| ENT-03 | P1 | 06-features/16-enterprise.md | 审计导出 |
-| ENT-04 | P2 | 06-features/16-enterprise.md | 角色级预算控制 |
-| ENT-05 | P1 | 06-features/16-enterprise.md | 预付费套餐 |
-| ENT-06 | P1 | 06-features/16-enterprise.md | API 限速定制 |
-| ENT-07 | P1 | 06-features/16-enterprise.md | 模型白名单/黑名单 |
-| ENT-08 | P2 | 06-features/16-enterprise.md | 数据驻留控制 |
+| ENT-01 | P2 | 13-enterprise.md | SSO/SAML/OIDC 集成 |
+| ENT-02 | P1 | 13-enterprise.md | 团队/项目隔离 |
+| ENT-03 | P1 | 13-enterprise.md | 审计导出 |
+| ENT-04 | P2 | 13-enterprise.md | 角色级预算控制 |
+| ENT-05 | P1 | 13-enterprise.md | 预付费套餐 |
+| ENT-06 | P1 | 13-enterprise.md | API 限速定制 |
+| ENT-07 | P1 | 13-enterprise.md | 模型白名单/黑名单 |
+| ENT-08 | P2 | 13-enterprise.md | 数据驻留控制 |
 
 #### 模型市场与发现 (MKT)
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| MKT-01 | P1 | 06-features/17-model-marketplace.md | 模型对比工具 |
-| MKT-02 | P1 | 06-features/17-model-marketplace.md | 供应商稳定性指标 |
-| MKT-03 | P2 | 06-features/17-model-marketplace.md | 模型基准测试 |
-| MKT-04 | P2 | 06-features/17-model-marketplace.md | 模型推荐引擎 |
-| MKT-05 | P0 | 06-features/17-model-marketplace.md | 供应商健康公开面板 |
-| MKT-06 | P1 | 06-features/17-model-marketplace.md | 模型变更日志 |
+| MKT-01 | P1 | 14-model-marketplace.md | 模型对比工具 |
+| MKT-02 | P1 | 14-model-marketplace.md | 供应商稳定性指标 |
+| MKT-03 | P2 | 14-model-marketplace.md | 模型基准测试 |
+| MKT-04 | P2 | 14-model-marketplace.md | 模型推荐引擎 |
+| MKT-05 | P0 | 14-model-marketplace.md | 供应商健康公开面板 |
+| MKT-06 | P1 | 14-model-marketplace.md | 模型变更日志 |
 
 #### 非功能需求新增
 
@@ -446,35 +457,34 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| CACHE-01 | P0 | 06-features/22-semantic-cache.md | 精确匹配缓存（SHA256 + Redis TTL） |
-| CACHE-02 | P1 | 06-features/22-semantic-cache.md | 语义向量缓存（384维 + 余弦相似度检索） |
-| CACHE-03 | P2 | 06-features/22-semantic-cache.md | 灰度区 LLM 验证（廉价模型二次判定） |
-| CACHE-04 | P0 | 06-features/22-semantic-cache.md | 缓存控制头（x-fastax-cache-ttl/skip-cache/cache-key） |
-| CACHE-05 | P2 | 06-features/22-semantic-cache.md | 流式 SSE 响应缓存与回放 |
-| CACHE-06 | P1 | 06-features/22-semantic-cache.md | 缓存计费（命中按原价 10-30% 计费） |
-| CACHE-07 | P1 | 06-features/22-semantic-cache.md | 缓存命名空间隔离（按用户/团队防污染） |
+| CACHE-01 | P0 | 22-semantic-cache.md | 精确匹配缓存（SHA256 + Redis TTL） |
+| CACHE-02 | P1 | 22-semantic-cache.md | 语义向量缓存（384维 + 余弦相似度检索） |
+| CACHE-03 | P2 | 22-semantic-cache.md | 灰度区 LLM 验证（廉价模型二次判定） |
+| CACHE-04 | P0 | 22-semantic-cache.md | 缓存控制头（x-fastax-cache-ttl/skip-cache/cache-key） |
+| CACHE-05 | P2 | 22-semantic-cache.md | 流式 SSE 响应缓存与回放 |
+| CACHE-06 | P1 | 22-semantic-cache.md | 缓存计费（命中按原价 10-30% 计费） |
+| CACHE-07 | P1 | 22-semantic-cache.md | 缓存命名空间隔离（按用户/团队防污染） |
 
 #### OpenTelemetry 可观测性 (OBSV) 🆕 v3.1
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| OBSV-01 | P0 | 06-features/23-otel-observability.md | 请求级 Trace/Span（Proxy 全链路 Span 树） |
-| OBSV-02 | P0 | 06-features/23-otel-observability.md | GenAI 语义约定（gen_ai.input.messages/output.messages） |
-| OBSV-03 | P0 | 06-features/23-otel-observability.md | 结构化日志关联（trace_id + span_id 自动注入） |
-| OBSV-04 | P1 | 06-features/23-otel-observability.md | W3C Traceparent 分布式追踪传播 |
-| OBSV-05 | P1 | 06-features/23-otel-observability.md | Prometheus 指标导出（40+ 指标 + histogram） |
-| OBSV-06 | P2 | 06-features/23-otel-observability.md | 预置 Grafana 仪表板（延迟/错误率/缓存/费用） |
+| OBSV-01 | P0 | 23-otel-observability.md | 请求级 Trace/Span（Proxy 全链路 Span 树） |
+| OBSV-02 | P0 | 23-otel-observability.md | GenAI 语义约定（gen_ai.input.messages/output.messages） |
+| OBSV-03 | P0 | 23-otel-observability.md | 结构化日志关联（trace_id + span_id 自动注入） |
+| OBSV-04 | P1 | 23-otel-observability.md | W3C Traceparent 分布式追踪传播 |
+| OBSV-05 | P1 | 23-otel-observability.md | Prometheus 指标导出（40+ 指标 + histogram） |
+| OBSV-06 | P2 | 23-otel-observability.md | 预置 Grafana 仪表板（延迟/错误率/缓存/费用） |
 
 #### MCP 网关 (MCP) 🆕 v3.1
 
 | ID | Pri | Source | Description |
 |----|-----|--------|-------------|
-| MCP-01 | P1 | 06-features/24-mcp-gateway.md | 统一 MCP 端点（聚合多 MCP Server 工具列表） |
-| MCP-02 | P1 | 06-features/24-mcp-gateway.md | 传输桥接（stdio ↔ SSE ↔ Streamable HTTP） |
-| MCP-03 | P1 | 06-features/24-mcp-gateway.md | 工具路由（按 tool name 前缀防冲突 + 路由分发） |
-| MCP-04 | P2 | 06-features/24-mcp-gateway.md | 工具级授权（CEL 策略引擎 + RBAC/FGA） |
-| MCP-05 | P2 | 06-features/24-mcp-gateway.md | MCP 连接池管理（OAuth 自动刷新 + 超时清理） |
-| MCP-06 | P2 | 06-features/24-mcp-gateway.md | MCP 审计追踪（mcp_event 记录 + trace_id 关联） |
+| MCP-01 | P1 | 24-mcp-gateway.md | 统一 MCP 端点（聚合多 MCP Server 工具列表） |
+| MCP-02 | P1 | 24-mcp-gateway.md | 传输桥接（stdio ↔ SSE ↔ Streamable HTTP） |
+| MCP-03 | P1 | 24-mcp-gateway.md | 工具路由（按 tool name 前缀防冲突 + 路由分发） |
+| MCP-04 | P2 | 24-mcp-gateway.md | 工具级授权（CEL 策略引擎 + RBAC/FGA） |
+| MCP-05 | P2 | 24-mcp-gateway.md | MCP 连接池管理（OAuth 自动刷新 + 超时清理） |
+| MCP-06 | P2 | 24-mcp-gateway.md | MCP 审计追踪（mcp_event 记录 + trace_id 关联） |
 
 ---
-

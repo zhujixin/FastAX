@@ -649,6 +649,89 @@ CREATE INDEX idx_withdrawal_agent ON withdrawal(agent_id, status);
   User ──1:1── UserBudget ──────────────────── 预算设置
        │
        ──1:1── CostAlert ───────────────────── 成本告警
+
+  ── v3.1 新增实体 🆕 ──
+
+  User ──1:N── CacheNamespace ──────────────── 缓存命名空间
+       │
+       ──1:N── MCPEventLog ─────────────────── MCP 事件审计
+       │
+  MCPServer ──1:N── MCPToolPolicy ──────────── 工具授权策略
+```
+
+#### 6.2.15 v3.1 新增表定义 🆕
+
+##### `exact_caches` — L1 精确缓存元数据
+
+```sql
+CREATE TABLE `exact_caches` (
+  `id` INTEGER PRIMARY KEY,
+  `sha256_hash` TEXT NOT NULL,
+  `namespace` TEXT NOT NULL DEFAULT 'global',
+  `model` TEXT NOT NULL,
+  `ttl` INTEGER DEFAULT 3600,
+  `hit_count` INTEGER DEFAULT 0,
+  `created_at` TEXT NOT NULL,
+  `expires_at` TEXT NOT NULL
+);
+CREATE UNIQUE INDEX idx_exact_cache ON exact_caches(sha256_hash, namespace, model);
+```
+
+##### `semantic_cache_entries` — L2 语义缓存条目
+
+```sql
+CREATE TABLE `semantic_cache_entries` (
+  `id` INTEGER PRIMARY KEY,
+  `prompt_hash` TEXT NOT NULL,
+  `prompt_text` TEXT NOT NULL,
+  `response_encrypted` BLOB NOT NULL,
+  `embedding` BLOB NOT NULL,
+  `model` TEXT NOT NULL,
+  `namespace` TEXT NOT NULL DEFAULT 'global',
+  `similarity_threshold` REAL DEFAULT 0.90,
+  `hit_count` INTEGER DEFAULT 0,
+  `created_at` TEXT NOT NULL,
+  `expires_at` TEXT NOT NULL
+);
+```
+
+##### `mcp_servers` — MCP Server 注册表
+
+```sql
+CREATE TABLE `mcp_servers` (
+  `id` INTEGER PRIMARY KEY,
+  `namespace` TEXT NOT NULL UNIQUE,
+  `name` TEXT NOT NULL,
+  `transport` TEXT NOT NULL DEFAULT 'streamable_http',
+  `endpoint_url` TEXT,
+  `command` TEXT,
+  `auth_type` TEXT DEFAULT 'api_key',
+  `auth_config` TEXT,
+  `status` TEXT DEFAULT 'active',
+  `health_check_interval` INTEGER DEFAULT 30,
+  `created_at` TEXT NOT NULL,
+  `updated_at` TEXT NOT NULL
+);
+```
+
+##### `mcp_event_logs` — MCP 事件审计日志
+
+```sql
+CREATE TABLE `mcp_event_logs` (
+  `id` INTEGER PRIMARY KEY,
+  `trace_id` TEXT NOT NULL,
+  `server_id` INTEGER REFERENCES mcp_servers(id),
+  `tool_name` TEXT NOT NULL,
+  `user_id` INTEGER REFERENCES user(id),
+  `action` TEXT NOT NULL,
+  `request` TEXT,
+  `response` TEXT,
+  `status` TEXT NOT NULL,
+  `duration_ms` INTEGER,
+  `created_at` TEXT NOT NULL
+);
+CREATE INDEX idx_mcp_log_trace ON mcp_event_logs(trace_id);
+CREATE INDEX idx_mcp_log_user ON mcp_event_logs(user_id, created_at);
 ```
 
 ### 6.3 Redis 缓存设计
@@ -665,6 +748,9 @@ CREATE INDEX idx_withdrawal_agent ON withdrawal(agent_id, status);
 | `refresh:token:{token}` | String | Refresh Token | 7d |
 | `i18n:translations:{locale}:{ns}` | Hash | 翻译缓存 | 1h |
 | `config:system:*` | String | 系统配置 | 10min |
+| `cache:exact:{namespace}:{model}:{hash}` | String (JSON) | L1 精确缓存 🆕 v3.1 | 1h |
+| `cache:semantic:{namespace}:{model}` | Sorted Set | L2 语义缓存索引 🆕 v3.1 | 24h |
+| `mcp:server:{namespace}` | Hash | MCP Server 连接状态 🆕 v3.1 | 60s |
 
 ### 6.4 数据库分片策略 (SQLite)
 

@@ -1,3 +1,13 @@
+---
+domain: plugin
+pdd_section: "§5.13"
+priority: P2
+status: completed
+depends_on: [proxy]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/plugin` — 插件系统 | **PDD**: §5.13
 
 ### 6.14 插件/扩展系统（PLUG）
@@ -13,4 +23,3 @@
 | PLUG-05 | **监控插件接口**：对接 Prometheus、Datadog 等外部监控系统的插件接口 | P2 | — |
 | PLUG-06 | **插件市场**：第三方开发者可提交插件，管理员在线安装/启用/禁用 | P3 | 长期规划 |
 | PLUG-07 | **插件沙箱隔离**：插件运行在沙箱环境中，不直接影响核心转发链路稳定性 | P2 | — |
-

@@ -1,3 +1,13 @@
+---
+domain: enterprise
+pdd_section: "§5.15"
+priority: P2
+status: completed
+depends_on: [user, cost]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/enterprise` — 企业功能 | **PDD**: §5.15
 
 ### 6.16 企业功能（ENT）
@@ -14,4 +24,3 @@
 | ENT-06 | **API 限速定制**：企业用户可自定义 API Rate Limit 参数 | P1 | — |
 | ENT-07 | **模型白名单/黑名单**：企业管理员可限制团队可调用的模型列表 | P1 | — |
 | ENT-08 | **数据驻留控制**：企业可指定数据处理的区域偏好（仅国内/仅海外/指定区域） | P2 | — |
-

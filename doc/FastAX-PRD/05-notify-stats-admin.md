@@ -1,3 +1,13 @@
+---
+domain: notify/stats/admin
+pdd_section: "§5.5"
+priority: P0
+status: completed
+depends_on: [user, order]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/notify`, `domain/stats`, `domain/commission` — 通知/统计/运营/管理后台 | **PDD**: §5.5
 
 ### 6.5 统计分析模块
@@ -44,4 +54,3 @@
 | F-ADM-07 | 操作日志记录与查询（保留 ≥ 6 个月） | P1 | — |
 | F-ADM-08 | **多语言支持配置**：启用/禁用语种、设置默认语言 | P0 | 详见第 6.9 节 |
 | F-ADM-09 | 多货币支持配置 | P2 | — |
-

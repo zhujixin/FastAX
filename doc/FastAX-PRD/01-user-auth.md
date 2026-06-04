@@ -1,3 +1,13 @@
+---
+domain: user
+pdd_section: "§5.1"
+priority: P0
+status: completed
+depends_on: []
+required_by: [order, payment, proxy, enterprise]
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/user` — 用户注册/登录/账号管理 | **PDD**: §5.1 | **实现参考**: one-api model/user.go + controller/user.go
 
 ## 7. 功能需求（按模块）
@@ -28,4 +38,3 @@
 | F-ACC-05 | 用户可查看当前等级、权限、可使用的功能范围 | P2 | — |
 | F-ACC-06 | 管理员可对用户进行等级管理（普通/企业/代理） | P0 | — |
 | F-ACC-07 | 管理员可对违规用户进行警告、冻结、注销账号 | P0 | 冻结后用户不可登录和交易 |
-

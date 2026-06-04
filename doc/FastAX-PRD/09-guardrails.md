@@ -1,3 +1,13 @@
+---
+domain: guardrail
+pdd_section: "§5.11"
+priority: P0
+status: completed
+depends_on: [proxy, user]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/guardrail` — 安全护栏 | **PDD**: §5.11
 
 ### 6.12 安全护栏（GRDL）
@@ -21,3 +31,12 @@
 | GRDL-13 | **工具级拦截**：按 function_call / code_interpreter / MCP tool 类型进行差异化拦截策略，阻断高风险工具调用 | P2 | Agent 场景下的安全扩展 |
 | GRDL-14 | **第三方护栏集成接口**：标准化护栏适配器接口，支持对接外部护栏引擎（如 Lakera、Akto、Javelin、F5 等 50+ 第三方方案） | P2 | 参考 Portkey Guardrails Marketplace 50+ 集成 |
 
+---
+## 相关模块
+
+| 关系 | 模块 | 说明 |
+|------|------|------|
+| 依赖 | [代理模块](02-token-proxy-vendor.md) | 在代理转发前后执行护栏检测 |
+| 依赖 | [用户认证](01-user-auth.md) | 护栏策略可按用户等级差异化 |
+| 被依赖 | [MCP 网关](24-mcp-gateway.md) | MCP 工具调用复用护栏检测 |
+| 关联 | [可观测性](23-otel-observability.md) | 护栏检测结果写入 OTel Span |

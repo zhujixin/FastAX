@@ -1,3 +1,13 @@
+---
+domain: mcp
+pdd_section: "§5.19"
+priority: P1
+status: planned
+depends_on: [proxy, user, guardrail]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/mcp` — MCP 网关 | **PDD**: §5.19 | **新增于**: PRD v3.1
 
 ### 6.20 MCP 网关（MCP）
@@ -6,12 +16,7 @@
 
 Model Context Protocol (MCP) 已成为 AI Agent 与外部工具之间的事实通信标准。2024 年 11 月 Anthropic 首创规范，2025-2026 年所有主流 AI 基础设施厂商均推出 MCP Gateway。MCP 网关是 FastAX 从「API 代理」扩展到「Agent 基础设施」的战略性新业务方向。
 
-```
-AI Agent → MCP Gateway (FastAX) → MCP Server A (GitHub API)
-                                  → MCP Server B (PostgreSQL DB)
-                                  → MCP Server C (Slack)
-                                  → ...
-```
+**架构**：AI Agent → MCP Gateway (FastAX 统一端点) → 按 tool name 路由到 N 个 MCP Server（如 GitHub API、PostgreSQL DB、Slack 等），每个 Server 独立管理连接和凭证。
 
 | 功能 | 需求描述 | 优先级 | 备注 |
 |------|----------|--------|------|
@@ -50,3 +55,12 @@ AI Agent → MCP Gateway (FastAX) → MCP Server A (GitHub API)
 | Phase 2 | 工具级授权 + 连接池管理（MCP-04/05） | 5-8d |
 | Phase 3 | MCP 审计 + 第三方 MCP Server 市场（MCP-06 + 扩展） | 5-8d |
 
+---
+## 相关模块
+
+| 关系 | 模块 | 说明 |
+|------|------|------|
+| 依赖 | [代理模块](02-token-proxy-vendor.md) | MCP 工具路由复用路由引擎和 Adaptor 模式 |
+| 依赖 | [用户认证](01-user-auth.md) | JWT + API Key 认证体系 |
+| 依赖 | [安全护栏](09-guardrails.md) | 工具调用前后安全检测 |
+| 关联 | [可观测性](23-otel-observability.md) | MCP 事件写入 OTel Span |

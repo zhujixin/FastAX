@@ -49,6 +49,15 @@ const (
 	DefaultBillingFlushInterval = 10 * time.Second
 )
 
+// ─── userLocks GC ───
+
+const (
+	// DefaultUserLockGCInterval is how often stale per-user locks are cleaned up.
+	DefaultUserLockGCInterval = 10 * time.Minute
+	// DefaultUserLockGCThreshold is the age after which unused locks are removed.
+	DefaultUserLockGCThreshold = 30 * time.Minute
+)
+
 // ─── 音频处理 ───
 
 const (

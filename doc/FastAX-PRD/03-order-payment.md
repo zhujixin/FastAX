@@ -1,3 +1,13 @@
+---
+domain: order/payment
+pdd_section: "§5.3"
+priority: P0
+status: completed
+depends_on: [user, token]
+required_by: [stats, commission]
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/order`, `domain/payment` — 订单/支付 | **PDD**: §5.3
 
 ### 6.3 交易模块
@@ -26,4 +36,3 @@
 | F-PAY-07 | 手续费规则配置：明确计算方式和结算周期 | P1 | — |
 | F-PAY-08 | **供应商结算管理**：平台按结算周期生成供应商结算单，支持供应商在线确认和提现申请 | P0 | 支持银行转账、PayPal 等 |
 | F-PAY-09 | **平台佣金计算**：按供应商费率配置自动计算平台佣金，支持按交易额百分比或固定费率 | P0 | — |
-

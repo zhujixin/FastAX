@@ -1,3 +1,14 @@
+---
+domain: shared (roadmap)
+pdd_section: "§15"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: roadmap
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 15. 实施路线图
 
 ### Phase 1：基础架构 + 中英双语（4-6 周）
@@ -92,4 +103,3 @@
 **Phase 8 完成标志**：全链路追踪覆盖 100% 请求，缓存命中率 ≥ 30%，条件路由可用，流式护栏上线，MCP 网关可接入 5+ MCP Server。
 
 ---
-

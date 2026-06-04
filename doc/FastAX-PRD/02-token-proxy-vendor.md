@@ -1,3 +1,13 @@
+---
+domain: proxy/vendor/token
+pdd_section: "§5.2"
+priority: P0
+status: completed
+depends_on: [user]
+required_by: [order, payment, risk, guardrail, cost]
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/proxy`, `domain/token`, `domain/vendor` — Token 代理/路由/供应商 | **PDD**: §5.2, §5.6 | **实现参考**: one-api relay/ + model/channel.go
 
 ### 6.2 Token 代理模块（核心模块）
@@ -12,7 +22,7 @@
 | F-TKN-04 | 设置库存预警值，低于阈值时系统自动通知管理员 | P0 | 默认阈值 10% |
 | F-TKN-05 | 支持 Token 批量导入/导出（Excel/CSV） | P1 | — |
 | F-TKN-06 | 多 Token 渠道配置，支持优先级与负载均衡策略 | P0 | — |
-| F-TKN-07 | **渠道健康检测**：每 5 分钟检查各渠道余额与可用性 | P0 | 故障渠道自动切换至备用 |
+| F-TKN-07 | **渠道余额与配额检测**：每 5 分钟检查各渠道的账户余额和配额上限，低于阈值时自动通知管理员 | P0 | 余额/配额周期性检查；接口延迟检测见 ROUTE-05（10秒/次），两者为不同维度 |
 | F-TKN-08 | 管理员可手动启用/禁用渠道 | P0 | — |
 | F-TKN-09 | 管理员可设置销售价格、会员折扣、批量折扣 | P0 | 支持价格实时调整 |
 | F-TKN-10 | Token 价格在用户端清晰展示，注明有效期和使用限制 | P0 | 保障价格透明 |
@@ -106,9 +116,9 @@
 | ROUTE-02 | **加权随机选择**：在最高优先级组内按权重比例随机选择，权重高的渠道被选中概率更大 | P0 | 替代加权轮询，更适合短连接 API 调用 |
 | ROUTE-03 | **自动故障转移（Failover）** + **重试**：主供应商失败时自动切换渠道重试（跳过刚失败的渠道），可配置重试次数（默认 3 次） | P0 | 参考 one-api controller/relay.go 重试循环 |
 | ROUTE-04 | **轻量熔断**：对 5xx/超时错误自动禁用渠道（DB 更新 status=3），排除 400/401/403/429；自动禁用后通过健康检测恢复 | P0 | 参考 one-api monitor.ShouldDisableChannel，不用 gobreaker |
-| ROUTE-05 | **实时健康检测**：每 10 秒检测各渠道健康状态（响应时间、错误率），自动恢复 health 渠道或禁用故障渠道 | P0 | 与 F-TKN-07 渠道健康检测联动 |
+| ROUTE-05 | **实时延迟健康检测**：每 10 秒检测各渠道接口响应时间和错误率，自动恢复健康渠道或禁用故障渠道 | P0 | 接口级延迟/可用性检测；余额检查见 F-TKN-07（5分钟/次），两者为不同维度 |
 | ROUTE-06 | **延迟敏感路由**：根据用户地域自动选择最低延迟的节点/供应商 | P0 | 海外用户→海外节点→国内供应商最优路径 |
-| ROUTE-07 | **成本优化路由**：支持"优先低价"模式，在满足延迟要求的前提下自动选择成本最低的供应商 | P1 | — |
+| ROUTE-07 | ~~**成本优化路由**：支持"优先低价"模式~~ → **已被 ROUTE-20 替代**，实现时请使用 ROUTE-20 的最低成本路由方案 | P1 → deprecated | 本条目保留作历史引用 |
 | ROUTE-08 | **时段性调度**：支持按时间段配置不同路由策略（如非工作时段切至低成本渠道） | P1 | — |
 | ROUTE-09 | **请求重写与透明转发**：转发请求时自动改写端点路径、Header，保持与上游 API 的兼容 | P0 | 参考 one-api SetupContextForSelectedChannel |
 | ROUTE-10 | **模型自动发现**：通过 `/v1/models` 自动获取供应商可用模型列表，按模型分组展示 | P1 | 供应商新增模型时无需手动配置 |
@@ -121,7 +131,21 @@
 | ROUTE-17 | **Ability 索引表 + 内存缓存**：维护 group+model+channel_id 复合索引，路由时优先查全量内存缓存（`group2model2channels` 三级 map），定时从 ability_index 表同步；缓存未命中时回退查 DB | P0 | 参考 one-api 的 InitChannelCache/SyncChannelCache 双缓存模式 |
 | ROUTE-18 | **Token 长度路由**：按输入请求的 token 数量自动选择合适模型 —— 短文本（≤1K）→ 快速模型（如 gpt-4o-mini），长文本（>32K）→ 大窗口模型（如 deepseek-v4），可配置阈值和映射规则 | P1 | 参考 LiteLLM `input_token_length_gt` 条件路由 |
 | ROUTE-19 | **内容类型路由**：自动检测请求中的媒体内容类型（图片、视频、音频），将含图片的请求路由到 Vision 能力渠道、含音频的请求路由到 Audio 能力渠道 | P1 | 参考 LiteLLM `contains_image` 条件路由 + Cloudflare 动态路由 |
-| ROUTE-20 | **最低成本路由**：启用 `enable_least_cost_routing` 模式后，在满足延迟约束（用户可配）的前提下，自动选择价格最低的可用供应商，支持同模型多供应商比价 | P1 | 参考 LiteLLM `least_cost_routing`；与 COST-06 成本感知路由联动增强 |
+| ROUTE-20 | **最低成本路由**（增强版替代 ROUTE-07）：启用 `enable_least_cost_routing` 模式后，在满足延迟约束（用户可配）的前提下，自动选择价格最低的可用供应商，支持同模型多供应商比价；策略由 COST-06 定义，ROUTE-20 执行 | P1 | 参考 LiteLLM `least_cost_routing`；替代旧版 ROUTE-07 |
 | ROUTE-21 | **延迟感知负载均衡**：采用 P2C（Power of Two Choices）+ PeakEWMA 算法，基于实时延迟和错误率指标动态加权选择渠道，替代纯随机选择，降低 P95 尾延迟 | P2 | 参考 Helicone P2C 负载均衡 |
 | ROUTE-22 | **路由规则即时热更新**：路由配置修改后通过 WebSocket/Redis PubSub 即时推送变更，< 1 秒内所有实例生效，替代定时 60s 轮询刷新 | P2 | 在 ROUTE-16 基础上演进，低延迟配置生效 |
 
+---
+## 相关模块
+
+| 关系 | 模块 | 说明 |
+|------|------|------|
+| 依赖 | [用户认证](01-user-auth.md) | 路由鉴权依赖 JWT Token + API Key |
+| 被依赖 | [订单支付](03-order-payment.md) | 每次代理调用产生订单记录 |
+| 被依赖 | [风控引擎](04-risk.md) | 风控检测代理请求异常 |
+| 被依赖 | [安全护栏](09-guardrails.md) | 护栏在代理转发前后检测内容 |
+| 被依赖 | [BYOK](10-byok.md) | BYOK Key 通过代理路由转发 |
+| 被依赖 | [成本优化](12-cost-optimization.md) | 成本感知路由联动 |
+| 被依赖 | [语义缓存](22-semantic-cache.md) | 缓存引擎拦截代理请求 |
+| 被依赖 | [可观测性](23-otel-observability.md) | OTel Span 记录代理全链路 |
+| 被依赖 | [MCP 网关](24-mcp-gateway.md) | MCP 工具路由复用代理基础设施 |

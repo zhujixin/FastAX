@@ -1,3 +1,13 @@
+---
+domain: observability
+pdd_section: "§5.18"
+priority: P0
+status: planned
+depends_on: [proxy, log]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/observability` — OpenTelemetry 可观测性 | **PDD**: §5.18 | **新增于**: PRD v3.1
 
 ### 6.19 OpenTelemetry 全链路可观测性（OBSV）
@@ -47,3 +57,12 @@ HTTP POST /v1/chat/completions (root span)
 | Phase 2 | Prometheus 指标 + Traceparent 传播（OBSV-04/05） | 2-4d |
 | Phase 3 | Grafana 仪表板 + 尾部采样（OBSV-06） | 2-3d |
 
+---
+## 相关模块
+
+| 关系 | 模块 | 说明 |
+|------|------|------|
+| 依赖 | [代理模块](02-token-proxy-vendor.md) | OTel Span 覆盖代理全链路 |
+| 依赖 | [日志模块](05-notify-stats-admin.md) | trace_id 注入调用日志 |
+| 关联 | [语义缓存](22-semantic-cache.md) | 缓存命中率/延迟指标 |
+| 关联 | [安全护栏](09-guardrails.md) | 护栏检测结果 Span Event |

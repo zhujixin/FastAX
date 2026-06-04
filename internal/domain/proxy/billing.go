@@ -19,23 +19,30 @@ import (
 	"gorm.io/gorm"
 )
 
+// userLockEntry wraps a per-user mutex with its last usage timestamp for GC.
+type userLockEntry struct {
+	mu       *sync.Mutex
+	lastUsed time.Time
+}
+
 // BillingManager 计费管理器
 type BillingManager struct {
 	db          *gorm.DB
 	mu          sync.Mutex
-	userLocks   map[uint]*sync.Mutex // per-user mutex to serialize billing ops
-	preConsumed map[uint]string      // userID → pre-consumed amount (frozen)
+	userLocks   map[uint]*userLockEntry // per-user mutex to serialize billing ops
+	preConsumed map[uint]string         // userID → pre-consumed amount (frozen)
 	batch       []usageRecord
 	batchMu     sync.Mutex
+	stopCh      chan struct{} // signals background goroutines to stop
 }
 
 type usageRecord struct {
-	UserID       uint
-	ProductID    uint
-	Amount       string // actual tokens used
-	PreAmount    string // pre-consumed estimate
-	Model        string
-	SupplierID   uint
+	UserID      uint
+	ProductID   uint
+	Amount      string // actual tokens used
+	PreAmount   string // pre-consumed estimate
+	Model       string
+	SupplierID  uint
 }
 
 // NewBillingManager 创建计费管理器
@@ -43,25 +50,62 @@ type usageRecord struct {
 func NewBillingManager(db *gorm.DB) *BillingManager {
 	bm := &BillingManager{
 		db:          db,
-		userLocks:   make(map[uint]*sync.Mutex),
+		userLocks:   make(map[uint]*userLockEntry),
 		preConsumed: make(map[uint]string),
 		batch:       make([]usageRecord, 0, DefaultBillingBatchSize),
+		stopCh:      make(chan struct{}),
 	}
-	// 启动批量刷入协程：每 10 秒或累积 100 条
+	// 启动后台协程
 	go bm.batchFlushLoop(DefaultBillingFlushInterval)
+	go bm.userLocksGCLoop(DefaultUserLockGCInterval)
 	return bm
 }
 
+// Stop gracefully shuts down background goroutines and flushes remaining records.
+func (bm *BillingManager) Stop() {
+	close(bm.stopCh)
+	bm.batchMu.Lock()
+	bm.flushBatch()
+	bm.batchMu.Unlock()
+}
+
 // getUserLock returns a per-user mutex to serialize billing operations.
+// Stale entries are periodically cleaned up by userLocksGCLoop.
 func (bm *BillingManager) getUserLock(userID uint) *sync.Mutex {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
-	if mu, ok := bm.userLocks[userID]; ok {
-		return mu
+	if entry, ok := bm.userLocks[userID]; ok {
+		entry.lastUsed = time.Now()
+		return entry.mu
 	}
-	mu := &sync.Mutex{}
-	bm.userLocks[userID] = mu
-	return mu
+	entry := &userLockEntry{
+		mu:       &sync.Mutex{},
+		lastUsed: time.Now(),
+	}
+	bm.userLocks[userID] = entry
+	return entry.mu
+}
+
+// userLocksGCLoop periodically removes per-user locks that haven't been used
+// for more than DefaultUserLockGCThreshold, preventing unbounded memory growth.
+func (bm *BillingManager) userLocksGCLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-bm.stopCh:
+			return
+		case <-ticker.C:
+			bm.mu.Lock()
+			cutoff := time.Now().Add(-DefaultUserLockGCThreshold)
+			for id, entry := range bm.userLocks {
+				if entry.lastUsed.Before(cutoff) {
+					delete(bm.userLocks, id)
+				}
+			}
+			bm.mu.Unlock()
+		}
+	}
 }
 
 // PreConsume 预扣：估算 Token 用量，冻结用户额度
@@ -168,7 +212,7 @@ func (bm *BillingManager) RecordUsage(userID, productID, supplierID uint, modelN
 		SupplierID: supplierID,
 	})
 
-	// 达到 100 条立即刷入
+	// 达到批量大小立即刷入
 	if len(bm.batch) >= DefaultBillingBatchSize {
 		bm.flushBatch()
 	}
@@ -177,31 +221,37 @@ func (bm *BillingManager) RecordUsage(userID, productID, supplierID uint, modelN
 func (bm *BillingManager) batchFlushLoop(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	for range ticker.C {
-		bm.batchMu.Lock()
-		if len(bm.batch) > 0 {
-			bm.flushBatch()
+	for {
+		select {
+		case <-bm.stopCh:
+			return
+		case <-ticker.C:
+			bm.batchMu.Lock()
+			if len(bm.batch) > 0 {
+				bm.flushBatch()
+			}
+			bm.batchMu.Unlock()
 		}
-		bm.batchMu.Unlock()
 	}
 }
 
 func (bm *BillingManager) flushBatch() {
 	for _, r := range bm.batch {
 		bm.db.Create(&model.CallLog{
-			UserID:     r.UserID,
-			ProductID:  r.ProductID,
-			SupplierID: r.SupplierID,
+			UserID:       r.UserID,
+			ProductID:    r.ProductID,
+			SupplierID:   r.SupplierID,
 			RequestModel: r.Model,
 			TokensTotal:  parseAmountAsInt(r.Amount),
-			Status:     "success",
-			CreatedAt:  time.Now(),
+			Status:       "success",
+			CreatedAt:    time.Now(),
 		})
 	}
 	bm.batch = bm.batch[:0]
 }
 
 // Flush 手动强制刷入（用于服务关闭时）
+// Deprecated: use Stop() which flushes and shuts down background goroutines.
 func (bm *BillingManager) Flush() {
 	bm.batchMu.Lock()
 	defer bm.batchMu.Unlock()

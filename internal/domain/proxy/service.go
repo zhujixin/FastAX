@@ -80,7 +80,7 @@ func NewService(db *gorm.DB, encryptKey []byte) *Service {
 func (s *Service) Stop() {
 	s.healthChecker.Stop()
 	s.router.Stop()
-	s.billing.Flush()
+	s.billing.Stop()
 }
 
 // SetPluginManager injects the plugin manager into the proxy service.

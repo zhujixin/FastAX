@@ -79,3 +79,22 @@ UpdateCacheConfig(req) error
 | `semantic_caches` | 语义缓存条目 (prompt_hash + response_encrypted) |
 | `user_budgets` | 用户预算设置 (user_id unique, period, limit, spent) |
 | `cost_alerts` | 成本告警配置 (user_id unique, thresholds JSON) |
+
+#### 5.14.6 上下文压缩 + 碳感知路由 (PRD §6.15 COST-09~11) 🆕 v3.1
+
+| 需求ID | 功能 | 设计要点 | 优先级 |
+|--------|------|---------|--------|
+| COST-09 | 上下文压缩网关 | 在 Proxy 转发前检测 `estimated_input_tokens > threshold`（默认 8K），调用压缩模型（gpt-4o-mini）将对话历史压缩为摘要，替换原始 messages 后转发目标模型。压缩比 40-70%，额外延迟 +200-500ms | P2 |
+| COST-10 | 分层上下文策略 | 实现 T0-T3 四层：**T0**（system prompt 稳定保留）、**T1**（最近 3 轮原文保留）、**T2**（语义检索相关历史片段，复用 chromem-go）、**T3**（预计算摘要替代更早历史）。通过 `context_layers` 配置 JSON 控制各层行为 | P2 |
+| COST-11 | 碳感知路由 | 接入 Electricity Maps API 获取实时电网碳强度（gCO2eq/kWh）。在 `LeastCostRoute` 中增加碳权重因子：`score = price * (1 + carbon_weight * carbon_intensity/max_intensity)`。用户可选择"低碳优先"模式 | P2 |
+
+**Service 方法新增**：
+```go
+// 上下文压缩
+func (s *CostService) CompressContext(ctx context.Context, messages []Message, threshold int) ([]Message, error)
+func (s *CostService) BuildLayeredContext(ctx context.Context, req *ChatRequest, layers *ContextLayerConfig) ([]Message, error)
+
+// 碳感知路由
+func (s *CostService) GetCarbonIntensity(ctx context.Context, region string) (float64, error)
+func (s *ProxyService) CarbonAwareRoute(ctx context.Context, model string, channels []*Channel) (*Channel, error)
+```

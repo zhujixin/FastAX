@@ -1,3 +1,13 @@
+---
+domain: proxy
+pdd_section: "§5.9"
+priority: P0
+status: completed
+depends_on: [proxy]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/proxy` (adaptor/) — 多协议原生支持 | **PDD**: §5.9 | **实现参考**: one-api relay/adaptor/ + channeltype/
 
 ### 6.10 多协议原生支持（PROTO）
@@ -17,4 +27,3 @@
 | PROTO-08 | **Rerank 模型支持**：支持 Cohere、Jina 等 Rerank API，统一 `POST /v1/rerank` 端点 | P2 | — |
 | PROTO-09 | **Embeddings 多供应商路由**：支持 OpenAI、Cohere、Google 等多供应商 Embedding 接口聚合 | P1 | — |
 | PROTO-10 | **MCP 协议支持**：支持 Model Context Protocol，AI Agent 可通过 MCP 发现和调用平台能力 | P1 | — |
-

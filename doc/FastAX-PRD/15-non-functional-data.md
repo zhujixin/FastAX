@@ -1,3 +1,14 @@
+---
+domain: shared
+pdd_section: "§7"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: non_functional
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 8. 非功能需求
 
 ### 7.1 性能需求
@@ -188,4 +199,3 @@ CREATE TABLE `call_log` (
 ```
 
 ---
-

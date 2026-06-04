@@ -1,3 +1,13 @@
+---
+domain: risk
+pdd_section: "§5.4"
+priority: P0
+status: completed
+depends_on: [user, proxy]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/risk` — 风控/安全 | **PDD**: §5.4
 
 ### 6.4 风控模块
@@ -22,4 +32,3 @@
 | F-SEC-04 | 接口签名验证：防止请求被篡改 | P1 | — |
 | F-SEC-05 | 接口限流：按 IP/账号/接口维度（如每秒最多 10 次） | P0 | — |
 | F-SEC-06 | 接口权限校验：所有请求验证 JWT，按角色控制访问范围 | P0 | — |
-

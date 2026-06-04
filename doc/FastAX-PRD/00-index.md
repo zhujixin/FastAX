@@ -1,3 +1,14 @@
+---
+domain: shared (index)
+pdd_section: "§1-§6"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: index
+version: "3.1"
+last_updated: "2026-06-04"
+---
 # FastAX Token 代理网站 — 产品需求说明书 (PRD)
 
 **产品名称**：FastAX Token 代理平台  
@@ -305,4 +316,3 @@ FastAX 是一个 **Token 代理与交易平台**，作为连接终端用户与 T
 | | 作为用户，我希望查看供应商历史可用率和延迟指标 | P0 |
 
 ---
-

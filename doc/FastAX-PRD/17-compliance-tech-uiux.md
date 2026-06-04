@@ -1,3 +1,14 @@
+---
+domain: shared
+pdd_section: "§12"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: compliance_tech_uiux
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 12. 合规需求
 
 | 需求 | 说明 | 依据 |
@@ -141,4 +152,3 @@ th-TH → th → en
 | 还剩 {days} 天到期 | Expires in {days} days | 残り{days}日 | {days}일 후 만료 |
 
 ---
-

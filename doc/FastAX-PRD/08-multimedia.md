@@ -1,3 +1,13 @@
+---
+domain: proxy
+pdd_section: "§5.10"
+priority: P1
+status: completed
+depends_on: [proxy]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/proxy` (adaptor/) — 多模态支持 | **PDD**: §5.10
 
 ### 6.11 多模态支持（MEDIA）
@@ -13,4 +23,3 @@
 | MEDIA-05 | **多模态路由与故障转移**：同模态多供应商间的自动重试和切换（如图片生成 A 失败→B） | P1 | — |
 | MEDIA-06 | **多模态成本追踪**：按模态类型（文本/图片/视频/音频）独立统计消耗和费用 | P1 | — |
 | MEDIA-07 | **媒体内容审核**：生成的图片/视频/音频自动过安全审核，违规内容标记/拦截 | P1 | — |
-

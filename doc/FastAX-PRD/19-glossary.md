@@ -1,3 +1,14 @@
+---
+domain: shared (glossary)
+pdd_section: "§19"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: glossary
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 16. 附录：术语表
 
 | 术语 | 定义 |
@@ -48,4 +59,3 @@
 | **不可篡改审计日志** | 使用加密技术（AES-256-GCM + HMAC-SHA256）保护的日志，写入后不可修改或删除 |
 
 ---
-

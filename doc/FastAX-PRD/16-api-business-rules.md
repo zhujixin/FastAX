@@ -1,3 +1,14 @@
+---
+domain: shared
+pdd_section: "§10"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: api_business_rules
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 10. 接口需求
 
 ### 9.1 用户端 API（对外）
@@ -132,4 +143,3 @@
 | R-BIZ-65 | 用户可随时导出个人数据（含调用记录、消费明细、护栏日志） |
 
 ---
-

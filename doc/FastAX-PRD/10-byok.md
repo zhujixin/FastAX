@@ -1,3 +1,13 @@
+---
+domain: byok
+pdd_section: "§5.12"
+priority: P1
+status: completed
+depends_on: [proxy, user]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/byok` — BYOK 自带 Key | **PDD**: §5.12
 
 ### 6.13 BYOK（自带 Key，Bring Your Own Key）
@@ -13,4 +23,3 @@
 | BYOK-05 | **团队 Key 共享**：企业用户可将自有 Key 共享给子账号使用，支持额度分配 | P2 | — |
 | BYOK-06 | **BYOK 模型限制**：用户可为自有 Key 设置可调用的模型白名单/黑名单 | P1 | — |
 | BYOK-07 | **BYOK 平台费用**：BYOK 模式收取 ≤ 5% 的平台服务费或零加成（视套餐而定） | P1 | 参考 OpenRouter 5% 费率 |
-

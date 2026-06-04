@@ -73,3 +73,25 @@ ListLogs(traceID string, userID uint, stage string) ([]GuardrailLog, error)
 UpdateGlobalConfig(mode string, enabled bool) error
 GetConfig() map[string]interface{}
 ```
+
+#### 5.11.5 流式护栏 + DLP (PRD §6.12 GRDL-10~14) 🆕 v3.1
+
+| 需求ID | 功能 | 设计要点 | 优先级 |
+|--------|------|---------|--------|
+| GRDL-10 | 流式护栏 | 在 SSE 流处理循环中逐 chunk 累积文本，每 N chunks（可配，默认 5）触发一次增量检测。检测到违规时：`block`=立即 `close(stream)` + 发送 `[DONE]`；`redact`=将敏感片段替换为 `***` 后继续发送 | P1 |
+| GRDL-11 | DLP 数据防泄露 | 双阶段扫描：Before 护栏扫描 Prompt 中的敏感文档内容（身份证号、银行卡号、内部项目代号）；After 护栏扫描 LLM 输出中的敏感信息泄露。使用正则+关键词库+NER 模型三层检测 | P1 |
+| GRDL-12 | 自定义正则替换 | `guardrail_rules` 表新增 `rule_type=regex_replace`，`conditions` JSON 存储 `{pattern, replacement}`。在护栏流水线中优先执行 regex_replace 规则再执行检测规则 | P1 |
+| GRDL-13 | 工具级拦截 | 扩展护栏引擎支持 `target=function_call` / `target=code_interpreter` / `target=mcp_tool` 三种新检测目标。在 OpenAI function_call 和 MCP tools/call 请求中提取工具名，匹配 `guardrail_rules` 中的 `tool_pattern` 字段进行阻断 | P2 |
+| GRDL-14 | 第三方护栏集成 | 定义 `GuardrailAdapter` 接口：`Detect(ctx, text, config) (*DetectResult, error)`。管理员通过 API 注册外部护栏引擎 URL+API Key，平台在护栏流水线中按优先级依次调用内部规则→第三方引擎 | P2 |
+
+**数据表变更**：
+```sql
+ALTER TABLE guardrail_rules ADD COLUMN target VARCHAR(50) DEFAULT 'prompt';
+  -- prompt / response / function_call / code_interpreter / mcp_tool
+ALTER TABLE guardrail_rules ADD COLUMN rule_type VARCHAR(50) DEFAULT 'detect';
+  -- detect / regex_replace
+```
+
+**API 端点新增**：
+| `/api/admin/guardrails/adaptors` | GET | Admin | 第三方护栏适配器列表 |
+| `/api/admin/guardrails/adaptors` | POST | Admin | 注册第三方护栏引擎 |

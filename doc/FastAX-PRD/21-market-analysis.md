@@ -1,3 +1,14 @@
+---
+domain: shared (market_analysis)
+pdd_section: "§18"
+priority: P0
+status: completed
+depends_on: []
+required_by: [all]
+type: analysis
+version: "3.1"
+last_updated: "2026-06-04"
+---
 ## 18. 附录：市场竞争对标分析
 
 ### 17.1 对标维度总览

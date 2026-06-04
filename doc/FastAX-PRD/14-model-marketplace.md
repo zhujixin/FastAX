@@ -1,3 +1,13 @@
+---
+domain: market
+pdd_section: "§5.16"
+priority: P2
+status: completed
+depends_on: [proxy, vendor]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/market` — 模型市场 | **PDD**: §5.16
 
 ### 6.17 模型市场与发现（MKT）
@@ -14,4 +24,3 @@
 | MKT-06 | **模型变更日志**：当模型新增、下架、价格变更、能力更新时推送通知和变更说明 | P1 | — |
 
 ---
-

@@ -3,8 +3,8 @@
 **文档状态**：定稿（2026-06-04 代码交叉验证更新）  
 **创建日期**：2026-05-28  
 **版本号**：v3.1  
-**基于 PRD 版本**：v3.0  
-**API 端点总数**：157 | **数据库表总数**：30
+**基于 PRD 版本**：v3.1  
+**API 端点总数**：175+ | **数据库表总数**：36+
 
 > **本文档已按 domain 拆分为多文件，详见 [FastAX-PDD/](.) 目录。** 推荐使用下方文件索引定位。本文档已于 2026-06-04 与代码进行全量交叉验证并更新。
 
@@ -34,6 +34,9 @@
 | 17 | [17-cost-optimization.md](17-cost-optimization.md) | `domain/cost` | 成本优化 (含 DB 持久化) | 80+ |
 | 18 | [18-enterprise.md](18-enterprise.md) | `domain/enterprise` | 企业功能 (含子账号) | 80+ |
 | 19 | [19-model-marketplace.md](19-model-marketplace.md) | `domain/market` | 模型市场 | 70+ |
+| 20 | [20-cache.md](20-cache.md) | `domain/cache` | 语义缓存引擎 🆕 v3.1 | 100+ |
+| 21 | [21-otel.md](21-otel.md) | `domain/observability` | OpenTelemetry 可观测性 🆕 v3.1 | 100+ |
+| 22 | [22-mcp.md](22-mcp.md) | `domain/mcp` | MCP 网关 🆕 v3.1 | 120+ |
 
 ---
 

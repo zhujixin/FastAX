@@ -1,20 +1,20 @@
+---
+domain: cache
+pdd_section: "§5.17"
+priority: P0
+status: planned
+depends_on: [proxy]
+required_by: []
+version: "3.1"
+last_updated: "2026-06-04"
+---
 > **Domain**: `domain/cache` — 语义缓存引擎 | **PDD**: §5.17 | **新增于**: PRD v3.1
 
 ### 6.18 语义缓存引擎（CACHE）
 
 参考 PromptCache、Cloudflare AI Gateway、Bifrost、SnackCache 等行业方案。语义缓存是 AI 网关降低成本和延迟的核心能力，行业标杆命中率 50-70%，可节省 30-80% API 调用成本。
 
-**架构模式：双层缓存流水线**
-
-```
-客户端请求 → 精确匹配哈希 (SHA256, Redis, <1ms) → 命中? 
-              ↓ MISS
-            向量相似度搜索 (384维, 5-10ms) → 高相似度(≥0.90)? 
-              ↓ 灰色区(0.80-0.90)
-            廉价模型验证 (gpt-4o-mini, 5-10ms) → 同义? 
-              ↓ 确认不同
-            调用源 LLM → 返回 + 写入缓存
-```
+**架构模式：双层缓存流水线** —— 步骤：(1) SHA256 精确匹配 (Redis, <1ms) → 命中则返回；(2) 向量相似度搜索 (384维, 5-10ms) → 高相似度(≥0.90) 直接返回；(3) 灰色区(0.80-0.90) 用廉价模型验证意图；(4) 确认不同则调用源 LLM 并写入缓存。
 
 | 功能 | 需求描述 | 优先级 | 备注 |
 |------|----------|--------|------|
@@ -45,3 +45,12 @@
 | Phase 2 | 语义向量缓存（CACHE-02 + CACHE-07） | 5-8d |
 | Phase 3 | 灰度区验证 + 流式缓存（CACHE-03 + CACHE-05） | 5-8d |
 
+---
+## 相关模块
+
+| 关系 | 模块 | 说明 |
+|------|------|------|
+| 依赖 | [代理模块](02-token-proxy-vendor.md) | 缓存引擎拦截代理转发请求 |
+| 依赖 | [成本优化](12-cost-optimization.md) | COST-06 计费策略驱动缓存计费比率 |
+| 被依赖 | [可观测性](23-otel-observability.md) | 缓存命中率/延迟写入 Prometheus 指标 |
+| 关联 | [安全护栏](09-guardrails.md) | 缓存返回前需经过护栏输出检测 |

@@ -299,3 +299,28 @@ ShouldDisableChannel 判断逻辑:
   - 两者组合实现: Azure 使用 OpenAI 协议但不同 channeltype
 ```
 
+#### 5.2.8 条件路由增强 (PRD §6.2.7 ROUTE-18~22) 🆕 v3.1
+
+| 需求ID | 功能 | 设计要点 | 优先级 |
+|--------|------|---------|--------|
+| ROUTE-18 | Token 长度路由 | 在 RouteDecision 阶段，根据 prompt token 估算（tiktoken 或字符数/4）选择模型：短文本(≤1K)→快速模型，长文本(>32K)→大窗口模型。通过 `routing_rules` 配置 JSON 定义阈值-模型映射 | P1 |
+| ROUTE-19 | 内容类型路由 | 在 ConvertRequest 前检测请求 body 中的 `image_url`/`audio`/`video` 字段，自动将含图片请求路由到 Vision 渠道、含音频到 Audio 渠道。通过 `content_type_routing` 配置表管理映射规则 | P1 |
+| ROUTE-20 | 最低成本路由 | 新增 `LeastCostRouter`，在同模型多渠道中按 `price_per_1k_tokens` 排序，在满足 `max_latency_ms` 约束下选择价格最低的渠道。与现有优先级路由共存：优先级分组→组内最低成本选择 | P1 |
+| ROUTE-21 | P2C 负载均衡 | 替代纯随机选择：从候选渠道中随机选 2 个，比较实时延迟和错误率，选择更优者。通过 `PeakEWMA` 指数移动平均追踪各渠道延迟/错误率。ROUTE-02 的增强版 | P2 |
+| ROUTE-22 | 路由即时热更新 | 通过 Redis Pub/Sub 频道 `fastax:route:update` 广播配置变更，所有实例 <1s 内重载内存中的 `group2model2channels` 缓存。替代定时 60s SyncChannelCache 的延迟 | P2 |
+
+**Service 方法新增**：
+```go
+// 条件路由
+func (s *ProxyService) RouteByTokenLength(ctx context.Context, req *ChatRequest) (*Channel, error)
+func (s *ProxyService) RouteByContentType(ctx context.Context, req *ChatRequest) (*Channel, error)
+func (s *ProxyService) LeastCostRoute(ctx context.Context, model string, channels []*Channel) (*Channel, error)
+
+// P2C 负载均衡
+type P2CLoadBalancer struct { ewma *PeakEWMA }
+func (lb *P2CLoadBalancer) Pick(channels []*Channel) *Channel
+
+// 即时热更新
+func (s *ProxyService) WatchRouteUpdates(ctx context.Context)  // Redis Pub/Sub listener
+```
+

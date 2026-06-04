@@ -35,6 +35,7 @@ import (
 	"github.com/fastax/fastax-server/internal/domain/proxy"
 	"github.com/fastax/fastax-server/internal/domain/risk"
 	"github.com/fastax/fastax-server/internal/domain/stats"
+	syspkg "github.com/fastax/fastax-server/internal/domain/system"
 	"github.com/fastax/fastax-server/internal/domain/token"
 	"github.com/fastax/fastax-server/internal/domain/user"
 	"github.com/fastax/fastax-server/internal/domain/vendor"
@@ -66,15 +67,16 @@ type Handlers struct {
 	Cost       *cost.Handler
 	Market     *market.Handler
 	I18n       *i18n.Handler
+	System     *syspkg.Handler
 }
 
 // NewHandlers 初始化所有处理器（注入依赖）
 func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Handlers {
-	userSvc := user.NewService(db, redis, &cfg.JWT)
+	userSvc := user.NewService(db, redis, cfg)
 	tokenSvc := token.NewService(db)
 	orderSvc := order.NewService(db)
 	paymentSvc := payment.NewService(db)
-	proxySvc := proxy.NewService(db)
+	proxySvc := proxy.NewService(db, cfg.GetEncryptionKey())
 	vendorSvc := vendor.NewService(db)
 	notifySvc := notify.NewService(db)
 	guardrailSvc := guardrail.NewService(db, cfg.Guardrail.Mode)
@@ -87,6 +89,7 @@ func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Han
 	costSvc := cost.NewService(db)
 	marketSvc := market.NewService(db)
 	i18nSvc := i18n.NewService(db)
+	sysSvc := syspkg.NewService(db)
 	return &Handlers{
 		User:      user.NewHandler(userSvc),
 		Token:     token.NewHandler(tokenSvc),
@@ -105,6 +108,7 @@ func NewHandlers(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Han
 		Cost:       cost.NewHandler(costSvc),
 		Market:     market.NewHandler(marketSvc),
 		I18n:       i18n.NewHandler(i18nSvc),
+		System:     syspkg.NewHandler(sysSvc),
 	}
 }
 
@@ -113,8 +117,11 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 	h := NewHandlers(db, redis, cfg)
 
 	// 全局中间件
-	r.Use(middleware.CORS())
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.CORS(cfg.Server.AllowedOrigins...))
 	r.Use(middleware.DetectLanguage())
+	// Body size limiter
+	r.Use(middleware.BodyLimit(cfg.Server.MaxBodySize))
 
 	// 限流器
 	ipLimiter := middleware.NewRateLimiter(cfg.RateLimit.IP, time.Minute)
@@ -133,8 +140,12 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		api.GET("/tokens/products/:id", h.Token.GetProduct)
 		api.GET("/models", h.Market.ListModels)
 		api.GET("/models/benchmarks", h.Market.GetBenchmarks)
+		api.GET("/models/variants/:variant", h.Market.GetModelVariant)
 		api.GET("/providers/health", h.Market.ListProviders)
 		api.GET("/providers/:id/health", h.Market.GetProviderHealth)
+
+			// Payment gateway callbacks (public webhooks, signature-verified internally)
+			api.POST("/payments/callback", h.Payment.Callback)
 
 		// i18n public routes
 		i18nGroup := api.Group("/i18n")
@@ -184,7 +195,6 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			payments := protected.Group("/payments")
 			{
 				payments.POST("", h.Payment.Create)
-				payments.POST("/callback", h.Payment.Callback)
 				payments.GET("/:order_id", h.Payment.GetPayment)
 				payments.POST("/refunds", h.Payment.CreateRefund)
 				payments.GET("/refunds", h.Payment.ListRefunds)
@@ -204,6 +214,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 				byokGroup.POST("/keys", h.BYOK.AddKey)
 				byokGroup.DELETE("/keys/:id", h.BYOK.DeleteKey)
 				byokGroup.PUT("/keys/:id/status", h.BYOK.SetKeyStatus)
+				byokGroup.GET("/usage", h.BYOK.GetUsage)
+			byokGroup.PUT("/preference", h.BYOK.SetPreference)
 			}
 
 			commissions := protected.Group("/commissions")
@@ -269,11 +281,18 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.PUT("/suppliers/:id", h.Vendor.UpdateSupplier)
 			admin.PUT("/suppliers/:id/status", h.Vendor.SetSupplierStatus)
 
+			// Channel management
+			admin.GET("/channels", h.Vendor.ListChannels)
+			admin.PUT("/channels/:id/status", h.Vendor.SetChannelStatus)
+			admin.PUT("/channels/:id/priority", h.Vendor.SetChannelPriority)
+
 			// Vendor management
 			admin.GET("/vendors", h.Vendor.ListVendors)
 			admin.GET("/vendors/:id", h.Vendor.GetVendor)
 			admin.POST("/vendors/:id/review", h.Vendor.ReviewVendor)
 			admin.POST("/vendors/:id/suspend", h.Vendor.SuspendVendor)
+			admin.GET("/vendors/:id/settlements", h.Vendor.ListVendorSettlements)
+			admin.PUT("/vendor-commission-rates/:id", h.Vendor.UpdateCommissionRate)
 
 			// Vendor product management
 			admin.POST("/vendors/:vendor_id/products", h.Vendor.CreateProduct)
@@ -330,7 +349,26 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 			admin.POST("/teams", h.Enterprise.CreateTeam)
 			admin.PUT("/teams/:id", h.Enterprise.UpdateTeam)
 			admin.DELETE("/teams/:id", h.Enterprise.DeleteTeam)
+
+			// System config
+			admin.GET("/system/config", h.System.GetConfig)
+			admin.PUT("/system/config", h.System.UpdateConfig)
+
+			// Admin account management
+			admin.GET("/system/admins", h.User.ListAdmins)
+			admin.POST("/system/admins", h.User.CreateAdmin)
+
+			// Guardrail global config
+			admin.PUT("/guardrails/config", h.Guardrail.UpdateConfig)
+
+			// Cache management
+			admin.GET("/cache/stats", h.Cost.GetCacheStats)
+			admin.PUT("/cache/config", h.Cost.UpdateCacheConfig)
+
+			// System logs (alias to audit logs per PDD)
+			admin.GET("/system/logs", h.Log.ListAuditLogs)
 		}
+
 
 		// Vendor self-service (protected)
 		vendorGroup := protected.Group("/vendor")
@@ -347,7 +385,12 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 				response.Success(c, resp)
 			})
 			vendorGroup.PUT("/profile", h.Vendor.UpdateProfile)
+			// Products self-service
+			vendorGroup.GET("/products", h.Vendor.ListMyProducts)
+			vendorGroup.POST("/products", h.Vendor.CreateMyProduct)
 			vendorGroup.PUT("/products/:id", h.Vendor.UpdateProduct)
+			vendorGroup.PUT("/products/:id/price", h.Vendor.UpdateProductPrice)
+			// Sales & Settlements
 			vendorGroup.GET("/sales", h.Vendor.GetSales)
 			vendorGroup.GET("/settlements", h.Vendor.GetSettlements)
 			vendorGroup.POST("/settlements/:id/confirm", h.Vendor.ConfirmSettlement)
@@ -363,6 +406,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		v1.POST("/messages", h.Proxy.ChatMessages) // Anthropic Messages API
 		v1.POST("/images/generations", h.Proxy.ImageGenerations)
 		v1.POST("/audio/speech", h.Proxy.AudioSpeech)
+		v1.POST("/audio/transcriptions", h.Proxy.AudioTranscriptions)
 		v1.POST("/video/generations", h.Proxy.VideoGenerations)
 		v1.POST("/rerank", h.Proxy.Rerank)
 		v1.GET("/models", h.Proxy.ListModels)

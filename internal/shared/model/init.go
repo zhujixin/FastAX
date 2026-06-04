@@ -58,9 +58,10 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		&AuditLog{},
 		&SupplierVendor{}, &SupplierProduct{}, &Settlement{},
 		&GuardrailRule{}, &GuardrailLog{},
-		&BYOKKey{},
+		&BYOKKey{}, &BYOKPreference{},
 		&SupportedLanguage{}, &ModelVariant{},
 		&SemanticCache{}, &ProviderHealth{},
+			&UserBudget{}, &CostAlert{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

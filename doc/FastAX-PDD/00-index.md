@@ -1,11 +1,12 @@
 # FastAX Token 代理平台 — 产品设计文档 (PDD)
 
-**文档状态**：定稿  
+**文档状态**：定稿（2026-06-04 代码交叉验证更新）  
 **创建日期**：2026-05-28  
-**版本号**：v3.0  
+**版本号**：v3.1  
 **基于 PRD 版本**：v3.0  
+**API 端点总数**：157 | **数据库表总数**：30
 
-> **本文档已按 domain 拆分为多文件，详见 [FastAX-PDD/](.) 目录。** 推荐使用下方文件索引定位。
+> **本文档已按 domain 拆分为多文件，详见 [FastAX-PDD/](.) 目录。** 推荐使用下方文件索引定位。本文档已于 2026-06-04 与代码进行全量交叉验证并更新。
 
 ---
 
@@ -16,23 +17,23 @@
 | 00 | [00-index.md](00-index.md) | — | 文档控制、Claude 指南、架构总览 | 291 |
 | 01 | [01-architecture.md](01-architecture.md) | — | 系统/前端/后端架构设计 | 454 |
 | 02 | [02-database.md](02-database.md) | `shared/model/` | 数据库表 + Redis 缓存 | 608 |
-| 03 | [03-api.md](03-api.md) | `shared/` | API 接口设计 | 414 |
+| 03 | [03-api.md](03-api.md) | `router/` + handlers | API 接口设计 (157 端点) | 400+ |
 | 04 | [04-security-deploy-stack.md](04-security-deploy-stack.md) | `shared/` | 安全/部署/技术栈 | 248 |
-| 05 | [05-user.md](05-user.md) | `domain/user` | 用户模块 | 69 |
+| 05 | [05-user.md](05-user.md) | `domain/user` | 用户模块 (含 OAuth) | 150+ |
 | 06 | [06-token-proxy-vendor.md](06-token-proxy-vendor.md) | `domain/proxy`+`token`+`vendor` | Token 代理/路由/供应商 | 300 |
 | 07 | [07-order-payment.md](07-order-payment.md) | `domain/order`+`payment` | 订单/支付 | 102 |
 | 08 | [08-risk.md](08-risk.md) | `domain/risk` | 风控 | 32 |
 | 09 | [09-notify.md](09-notify.md) | `domain/notify` | 通知 | 43 |
-| 10 | [10-channel-adapter.md](10-channel-adapter.md) | `shared/relay` | 渠道适配器 | 51 |
+| 10 | [10-channel-adapter.md](10-channel-adapter.md) | `domain/proxy/relay/` | 渠道适配器 | 51 |
 | 11 | [11-i18n-overseas.md](11-i18n-overseas.md) | `shared/i18n` | 多语言+海外优化 | 101 |
 | 12 | [12-multi-protocol.md](12-multi-protocol.md) | `domain/proxy/adaptor` | 多协议 | 53 |
 | 13 | [13-multimedia.md](13-multimedia.md) | `domain/proxy/adaptor` | 多模态 | 36 |
-| 14 | [14-guardrails.md](14-guardrails.md) | `domain/guardrail` | 安全护栏 | 39 |
-| 15 | [15-byok.md](15-byok.md) | `domain/byok` | BYOK | 30 |
+| 14 | [14-guardrails.md](14-guardrails.md) | `domain/guardrail` | 安全护栏 | 80+ |
+| 15 | [15-byok.md](15-byok.md) | `domain/byok` | BYOK | 80+ |
 | 16 | [16-plugin.md](16-plugin.md) | `domain/plugin` | 插件 | 27 |
-| 17 | [17-cost-optimization.md](17-cost-optimization.md) | `domain/cost` | 成本优化 | 31 |
-| 18 | [18-enterprise.md](18-enterprise.md) | `domain/enterprise` | 企业功能 | 11 |
-| 19 | [19-model-marketplace.md](19-model-marketplace.md) | `domain/market` | 模型市场 | 12 |
+| 17 | [17-cost-optimization.md](17-cost-optimization.md) | `domain/cost` | 成本优化 (含 DB 持久化) | 80+ |
+| 18 | [18-enterprise.md](18-enterprise.md) | `domain/enterprise` | 企业功能 (含子账号) | 80+ |
+| 19 | [19-model-marketplace.md](19-model-marketplace.md) | `domain/market` | 模型市场 | 70+ |
 
 ---
 
@@ -60,6 +61,7 @@
 | v1.0 | 2026-05-27 | — | 初稿，基于 PRD v1.0 编写 |
 | v2.0 | 2026-05-27 | — | 重写：新增多语言(i18n)、供应商入驻与销售平台、海外→国内模型优化、转发逻辑设计(参考 CC Switch) |
 | v3.0 | 2026-05-28 | — | Go 单体架构重构；路由/熔断/计费优化(参考 one-api)；新增 PROTO/MEDIA/GRDL/BYOK/PLUG/COST/ENT/MKT 8 大模块设计；新增 6 张数据表 |
+| v3.1 | 2026-06-04 | — | 代码交叉验证更新：修正 relay 路径(shared→domain/proxy)、更新表数(30→33)、API 完全重写(157端点)、接口定义对齐实际代码 |
 
 **新增设计覆盖 PRD 需求**:
 - 多语言模块 (LANG-01 ~ LANG-06)
@@ -86,7 +88,7 @@
 |------|------|---------|
 | `doc/FastAX-PRD/00-index.md` | 需求总索引 + 文件导航 | 查"要做什么" → 按 domain 定位到对应文件 |
 | `doc/FastAX-PRD/01-user-auth.md` ~ `21-market-analysis.md` | 按 domain 拆分的需求详情 | 每个文件对应一个 Go package |
-| `doc/FastAX-PDD.md` (本文) | 设计 + 实现参考 | 查"怎么做" |
+| `doc/FastAX-PDD/00-index.md` (本文) | 设计 + 实现参考 | 查"怎么做" |
 | `ref/one-api/` | 生产级参考实现 | 抄代码模式 + 接口定义 |
 | `CLAUDE.md` | 项目约束 + 技术栈 | 持久上下文 |
 
@@ -106,10 +108,8 @@
   └── domain/payment (支付对接/对账)
        ↓
 阶段3 ── 代理转发核心
-  ├── domain/proxy/relay/    (路由引擎 + Adaptor 接口)
-  ├── domain/proxy/adaptor/  (OpenAI/Anthropic/Gemini 适配器)
-  ├── domain/proxy/monitor/  (健康检测 + 熔断)
-  └── domain/vendor          (供应商入驻/商品)
+      ├── domain/proxy/          (健康检测 + 熔断 + 计费: health.go/circuit.go/billing.go)
+      ├── domain/proxy/relay/    (路由引擎 + Adaptor: OpenAI/Anthropic/DeepSeek/Qwen/GLM)
        ↓
 阶段4 ── 增值模块
   ├── domain/risk       (风控规则)
@@ -137,65 +137,36 @@ cmd/
     └── main.go              # 入口: 初始化 DB/Redis/路由 → Gin.Run
 
 internal/
-├── shared/
-│   ├── model/               # GORM 模型 (所有表)
-│   │   ├── user.go
-│   │   ├── token.go
-│   │   ├── channel.go
-│   │   ├── ability.go
-│   │   ├── order.go
-│   │   ├── call_log.go
-│   │   └── ...              # + byok_key, guardrail_rule 等 v3.0 表
-│   ├── config/              # Viper 配置
-│   ├── cache/               # Redis 缓存 (参考 one-api common/redis.go)
-│   ├── middleware/          # Gin 中间件 (参考 one-api middleware/)
-│   │   ├── auth.go          # JWT 鉴权
-│   │   ├── rate_limit.go    # 限流
-│   │   ├── language.go      # Accept-Language 解析
-│   │   └── distributor.go   # 渠道分发 (参考 one-api middleware/distributor.go)
-│   ├── relay/               # 路由引擎 (参考 one-api relay/)
-│   │   ├── adaptor.go       # Adaptor 分发器 (GetAdaptor)
-│   │   └── controller/      # 转发控制 (RelayTextHelper / RelayImageHelper)
-│   ├── monitor/             # 健康检测 + 熔断 (参考 one-api monitor/)
-│   └── i18n/                # 国际化 (参考 one-api common/i18n/)
-
-├── domain/                   # 业务域 (每个 domain 一个 Service interface)
-│   ├── user/
-│   │   ├── service.go        # UserService interface
-│   │   ├── service_impl.go   # 单体实现
-│   │   ├── handler.go        # HTTP handler
-│   │   └── model.go          # domain 内 DTO
-│   ├── token/
-│   ├── order/
-│   ├── payment/
-│   ├── proxy/               # 核心: 路由转发
-│   │   ├── service.go        # ProxyService interface
-│   │   ├── handler.go        # OpenAI 兼容端点
-│   │   └── router.go         # 路由注册
-│   ├── vendor/
-│   ├── risk/
-│   ├── notify/
-│   ├── stats/
-│   ├── commission/
-│   ├── log/
-│   ├── guardrail/            # 安全护栏 (P0)
-│   ├── byok/                 # BYOK (P0)
-│   ├── cost/                 # 成本优化 (P1)
-│   ├── enterprise/           # 企业功能 (P2)
-│   ├── market/               # 模型市场 (P1)
-│   └── plugin/               # 插件系统 (P2)
+├── shared/                  # 共享层 (无业务依赖)
+│   ├── model/               #   GORM 模型 (33 表)
+│   ├── config/              #   Viper 配置管理
+│   ├── cache/               #   Redis 缓存层
+│   ├── middleware/           #   Gin 中间件 (auth/ratelimit/language/distributor/cors/security/body_limit)
+│   ├── i18n/                #   多语言国际化
+│   ├── crypto/              #   AES-256-GCM 加解密
+│   ├── mask/                #   数据脱敏 (手机/邮箱/身份证/银行卡/APIKey)
+│   └── response/            #   统一响应格式 + 多语言错误消息
+│
+├── domain/                  # 业务域 (各含 service.go + handler.go, 使用具体 struct)
+│   ├── user/ ├── token/ ├── order/ ├── payment/
+│   ├── proxy/ (核心, 含 relay/ 路由引擎)  ├── vendor/
+│   ├── risk/ ├── notify/ ├── stats/ ├── commission/ ├── log/
+│   ├── guardrail/ ├── byok/ ├── cost/ ├── enterprise/ ├── market/ ├── plugin/
+│   └── system/              # 系统配置管理
 │
 └── router/
-    ├── api.go              # /api/* 业务路由
-    └── relay.go            # /v1/* OpenAI 兼容路由
+    └── router.go            # 统一路由注册 (157 端点)
 ```
 
 ### 2.4 核心接口定义
 
-每个 domain 的 Service interface 即未来 gRPC proto 定义。单体阶段直接调用实现，微服务阶段替换为 gRPC client。
+> **当前实现**：各 domain 使用具体 struct (`type Service struct`) 而非 Go interface。单体阶段直接调用 struct 方法。
+> **未来演进**：拆分 gRPC 微服务时，先提取 interface，再替换为 gRPC client。
+
+典型服务方法参考（当前全部已实现为 struct 方法）：
 
 ```go
-// domain/user/service.go
+// domain/user/service.go (当前: type Service struct, 未来可提取: type UserService interface)
 type UserService interface {
     Register(ctx, email, password) (user, error)
     Login(ctx, account, password) (token, error)
@@ -266,7 +237,7 @@ go run ./cmd/fastax -migrate         # 自动建表
        │                  │                  │
        ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                           业务服务层 (Go 微服务)                                 │
+│                           业务服务层 (Go 单体)                                 │
 │                                                                                     │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
 │  │ user-    │ │ token-   │ │ order-   │ │ payment- │ │ notify-  │ │ vendor-  │    │
@@ -308,7 +279,7 @@ go run ./cmd/fastax -migrate         # 自动建表
 
 | 原则 | 说明 |
 |------|------|
-| **微服务架构** | 独立业务域拆分为独立 Go 服务，独立部署扩缩容，每服务独立 SQLite DB |
+| **单体优先** | Go 单体应用，domain package 解耦，用户 >5000 后按需拆分 gRPC 微服务，单 SQLite DB (WAL) |
 | **API 网关统一入口** | 所有外部请求经网关统一处理，网关层解析 `Accept-Language` 注入请求头 |
 | **无状态设计** | 服务实例无状态，Session 数据外置到 Redis，语言偏好通过 JWT 或 header 传递 |
 | **异步解耦** | 非实时操作通过消息队列异步处理（通知、日志、风控、结算） |

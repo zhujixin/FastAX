@@ -18,6 +18,7 @@
 package cost
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -30,17 +31,13 @@ import (
 type Service struct {
 	db       *gorm.DB
 	mu       sync.RWMutex
-	budgets  map[uint]*BudgetSetting   // userID -> 预算设置
-	alerts   map[uint]*AlertSetting    // userID -> 告警配置
-	spending map[uint]float64          // userID -> 当前周期消费
+	spending map[uint]float64 // userID -> 当前周期消费（瞬时数据，周期切换时重置）
 }
 
 // NewService 创建成本优化服务实例
 func NewService(db *gorm.DB) *Service {
 	return &Service{
 		db:       db,
-		budgets:  make(map[uint]*BudgetSetting),
-		alerts:   make(map[uint]*AlertSetting),
 		spending: make(map[uint]float64),
 	}
 }
@@ -80,30 +77,44 @@ func (s *Service) SetBudget(userID uint, period string, limit float64) (*BudgetS
 	}
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	spent := s.spending[userID]
+	s.mu.Unlock()
 
-	budget := &BudgetSetting{
-		UserID:    userID,
-		Period:    period,
-		Limit:     limit,
-		Spent:     s.spending[userID],
-		UpdatedAt: time.Now().Unix(),
+	// Upsert budget to database
+	budget := model.UserBudget{
+		UserID: userID,
+		Period: period,
+		Limit:  limit,
+		Spent:  spent,
 	}
-	s.budgets[userID] = budget
-	return budget, nil
+	if err := s.db.Where("user_id = ?", userID).Assign(budget).FirstOrCreate(&budget).Error; err != nil {
+		return nil, fmt.Errorf("set budget: %w", err)
+	}
+
+	return &BudgetSetting{
+		UserID: userID,
+		Period: period,
+		Limit:  limit,
+		Spent:  spent,
+	}, nil
 }
 
 func (s *Service) GetBudget(userID uint) (*BudgetStatus, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	budget, ok := s.budgets[userID]
-	if !ok {
+	var budget model.UserBudget
+	if err := s.db.Where("user_id = ?", userID).First(&budget).Error; err != nil {
 		return nil, fmt.Errorf("budget not set for user %d", userID)
 	}
 
 	// Refresh spent from spending tracker
-	budget.Spent = s.spending[userID]
+	s.mu.RLock()
+	spent := s.spending[userID]
+	s.mu.RUnlock()
+
+	// Persist updated spent to DB periodically (on read)
+	if spent != budget.Spent {
+		s.db.Model(&budget).Update("spent", spent)
+		budget.Spent = spent
+	}
 
 	pct := 0.0
 	if budget.Limit > 0 {
@@ -114,25 +125,30 @@ func (s *Service) GetBudget(userID uint) (*BudgetStatus, error) {
 	start, end := s.periodRange(budget.Period, now)
 
 	return &BudgetStatus{
-		BudgetSetting: budget,
-		Exceeded:      budget.Spent >= budget.Limit,
-		UsagePct:      pct,
-		PeriodStart:   start,
-		PeriodEnd:     end,
+		BudgetSetting: &BudgetSetting{
+			UserID: budget.UserID,
+			Period: budget.Period,
+			Limit:  budget.Limit,
+			Spent:  budget.Spent,
+		},
+		Exceeded:    budget.Spent >= budget.Limit,
+		UsagePct:    pct,
+		PeriodStart: start,
+		PeriodEnd:   end,
 	}, nil
 }
 
 func (s *Service) CheckBudget(userID uint) (bool, float64, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	budget, ok := s.budgets[userID]
-	if !ok {
+	var budget model.UserBudget
+	if err := s.db.Where("user_id = ?", userID).First(&budget).Error; err != nil {
 		// No budget set, allow by default
 		return true, 0, nil
 	}
 
+	s.mu.RLock()
 	spent := s.spending[userID]
+	s.mu.RUnlock()
+
 	return spent < budget.Limit, spent, nil
 }
 
@@ -155,48 +171,70 @@ func (s *Service) SetAlert(userID uint, thresholds []float64) (*AlertSetting, er
 		}
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	thresholdsJSON, err := json.Marshal(thresholds)
+	if err != nil {
+		return nil, fmt.Errorf("marshal thresholds: %w", err)
+	}
 
-	alert := &AlertSetting{
+	alert := model.CostAlert{
+		UserID:     userID,
+		Thresholds: string(thresholdsJSON),
+	}
+	if err := s.db.Where("user_id = ?", userID).Assign(alert).FirstOrCreate(&alert).Error; err != nil {
+		return nil, fmt.Errorf("set alert: %w", err)
+	}
+
+	return &AlertSetting{
 		UserID:     userID,
 		Thresholds: thresholds,
-		UpdatedAt:  time.Now().Unix(),
-	}
-	s.alerts[userID] = alert
-	return alert, nil
+	}, nil
 }
 
 func (s *Service) GetAlerts(userID uint) (*AlertSetting, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	alert, ok := s.alerts[userID]
-	if !ok {
+	var alert model.CostAlert
+	if err := s.db.Where("user_id = ?", userID).First(&alert).Error; err != nil {
 		return nil, fmt.Errorf("alert not configured for user %d", userID)
 	}
-	return alert, nil
+
+	var thresholds []float64
+	if err := json.Unmarshal([]byte(alert.Thresholds), &thresholds); err != nil {
+		return nil, fmt.Errorf("unmarshal thresholds: %w", err)
+	}
+
+	return &AlertSetting{
+		UserID:     userID,
+		Thresholds: thresholds,
+	}, nil
 }
 
 // CheckAlerts checks current spending against thresholds, returns triggered thresholds
 func (s *Service) CheckAlerts(userID uint) ([]float64, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	budget, hasBudget := s.budgets[userID]
-	alert, hasAlert := s.alerts[userID]
-	if !hasBudget || !hasAlert {
+	var budget model.UserBudget
+	if err := s.db.Where("user_id = ?", userID).First(&budget).Error; err != nil {
 		return nil, nil
 	}
 
+	var alert model.CostAlert
+	if err := s.db.Where("user_id = ?", userID).First(&alert).Error; err != nil {
+		return nil, nil
+	}
+
+	var thresholds []float64
+	if err := json.Unmarshal([]byte(alert.Thresholds), &thresholds); err != nil {
+		return nil, nil
+	}
+
+	s.mu.RLock()
 	spent := s.spending[userID]
+	s.mu.RUnlock()
+
 	pct := 0.0
 	if budget.Limit > 0 {
 		pct = (spent / budget.Limit) * 100
 	}
 
 	var triggered []float64
-	for _, threshold := range alert.Thresholds {
+	for _, threshold := range thresholds {
 		if pct >= threshold {
 			triggered = append(triggered, threshold)
 		}
@@ -330,4 +368,69 @@ func (s *Service) GetCostByModel(period string) ([]CostRecord, error) {
 		}
 	}
 	return records, nil
+}
+
+// --- Cache Stats & Config ---
+
+type CacheStats struct {
+	TotalEntries    int     `json:"total_entries"`
+	ActiveEntries   int     `json:"active_entries"`
+	TotalHits       int64   `json:"total_hits"`
+	HitRate         float64 `json:"hit_rate"`
+	EstimateSavings string  `json:"estimate_savings"`
+}
+
+type CacheConfig struct {
+	Enabled              bool    `json:"enabled"`
+	SimilarityThreshold  float64 `json:"similarity_threshold"`
+	TTLSeconds           int     `json:"ttl_seconds"`
+	MaxEntries           int     `json:"max_entries"`
+}
+
+var cacheConfig = CacheConfig{
+	Enabled:              true,
+	SimilarityThreshold:  0.85,
+	TTLSeconds:           3600,
+	MaxEntries:           10000,
+}
+
+func (s *Service) GetCacheStats() (*CacheStats, error) {
+	var totalEntries, activeEntries int64
+	s.db.Model(&model.SemanticCache{}).Count(&totalEntries)
+	s.db.Model(&model.SemanticCache{}).Where("expires_at > ?", time.Now().Unix()).Count(&activeEntries)
+
+	var totalHits int64
+	s.db.Model(&model.SemanticCache{}).Select("COALESCE(SUM(hit_count), 0)").Scan(&totalHits)
+
+	hitRate := 0.0
+	if totalEntries > 0 {
+		hitRate = float64(totalHits) / float64(totalEntries)
+	}
+
+	return &CacheStats{
+		TotalEntries:    int(totalEntries),
+		ActiveEntries:   int(activeEntries),
+		TotalHits:       totalHits,
+		HitRate:         hitRate,
+		EstimateSavings: fmt.Sprintf("%.2f%%", hitRate*90),
+	}, nil
+}
+
+func (s *Service) UpdateCacheConfig(req *struct {
+	Enabled              bool    `json:"enabled"`
+	SimilarityThreshold  float64 `json:"similarity_threshold"`
+	TTLSeconds           int     `json:"ttl_seconds"`
+	MaxEntries           int     `json:"max_entries"`
+}) error {
+	if req.TTLSeconds > 0 {
+		cacheConfig.TTLSeconds = req.TTLSeconds
+	}
+	if req.SimilarityThreshold > 0 {
+		cacheConfig.SimilarityThreshold = req.SimilarityThreshold
+	}
+	if req.MaxEntries > 0 {
+		cacheConfig.MaxEntries = req.MaxEntries
+	}
+	cacheConfig.Enabled = req.Enabled
+	return nil
 }

@@ -29,7 +29,8 @@ func setupTestRouter(svc *Service) *gin.Engine {
 }
 
 func TestHandler_SetBudget(t *testing.T) {
-	svc := NewService(nil) // DB not needed for budget (in-memory)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	body := SetBudgetRequest{Period: "monthly", Limit: 500.0}
@@ -52,7 +53,8 @@ func TestHandler_SetBudget(t *testing.T) {
 }
 
 func TestHandler_SetBudget_InvalidPeriod(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	body := SetBudgetRequest{Period: "yearly", Limit: 500.0}
@@ -69,7 +71,8 @@ func TestHandler_SetBudget_InvalidPeriod(t *testing.T) {
 }
 
 func TestHandler_SetBudget_NegativeLimit(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	body := SetBudgetRequest{Period: "daily", Limit: -100}
@@ -86,7 +89,8 @@ func TestHandler_SetBudget_NegativeLimit(t *testing.T) {
 }
 
 func TestHandler_GetBudget(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	// Set budget first
@@ -109,7 +113,8 @@ func TestHandler_GetBudget(t *testing.T) {
 }
 
 func TestHandler_GetBudget_NotSet(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/user/budget", nil)
@@ -122,7 +127,8 @@ func TestHandler_GetBudget_NotSet(t *testing.T) {
 }
 
 func TestHandler_SetAlert(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	body := SetAlertRequest{Thresholds: []float64{50, 80, 100}}
@@ -139,7 +145,8 @@ func TestHandler_SetAlert(t *testing.T) {
 }
 
 func TestHandler_SetAlert_EmptyThresholds(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	body := SetAlertRequest{Thresholds: []float64{}}
@@ -156,7 +163,8 @@ func TestHandler_SetAlert_EmptyThresholds(t *testing.T) {
 }
 
 func TestHandler_GetAlerts(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	svc.SetAlert(1, []float64{50, 80, 100})
@@ -179,7 +187,8 @@ func TestHandler_GetAlerts(t *testing.T) {
 }
 
 func TestHandler_GetAlerts_NotSet(t *testing.T) {
-	svc := NewService(nil)
+	db := setupTestDB(t)
+	svc := NewService(db)
 	r := setupTestRouter(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/user/cost-alerts", nil)

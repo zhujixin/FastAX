@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FastAX 是一个 **Token 代理与交易平台**（Go 单体优先），作为连接终端用户与 Token 源头（OpenAI、Claude、Gemini、DeepSeek、Qwen、GLM 等）的中间枢纽。
 
-**当前阶段**：S0（项目骨架）+ S1（用户与 Token）已完成，正在进行 S2（交易链路）。
+**当前阶段**：全部 S0-S6 阶段已完成（18 domain + 1 system = 19 模块），157 个 API 端点，33 张数据库表。
 
 ---
 
@@ -104,8 +104,8 @@ cd web && npm test       # 测试
 ## 架构快照
 
 ```
-7 层: Client → CDN → Nginx → fastax-server (Go 单体, 18 domain) → MQ/Redis → SQLite/ES → 外部供应商
-关键: 单体优先 + domain package + Go interface 解耦 → 用户>5000 后按需拆 gRPC
+7 层: Client → CDN → Nginx → fastax-server (Go 单体, 19 module) → MQ/Redis → SQLite/ES → 外部供应商
+关键: 单体优先 + domain package + 具体 struct 调用 → 用户>5000 后按需拆 gRPC
 ```
 
 ### Domain 依赖层级（实现顺序）
@@ -149,23 +149,20 @@ Layer 6: domain/cost, enterprise, market, plugin       (P1/P2 扩展)
 
 ```
 internal/domain/proxy/
-├── service.go              # ProxyService interface
-├── handler.go              # HTTP handler (流式/非流式)
+├── service.go              # ProxyService (核心: 路由+转发+流式)
+├── handler.go              # HTTP handler (/v1/* 端点)
+├── billing.go              # 两阶段计费 (预扣+后扣)
+├── route.go                # 路由注册
+├── health.go               # 健康检测 (10s ping + 5min 周期性)
+├── circuit.go              # 熔断器 (ShouldDisableChannel)
 │
-├── relay/                  # 路由引擎 (直接参考 one-api relay/)
-│   ├── controller/
-│   │   └── relay.go        # 转发控制 + 重试循环
-│   ├── adaptor.go          # GetAdaptor(apiType) 分发器
-│   └── adaptor/            # 供应商适配器
-│       ├── openai/
-│       ├── anthropic/
-│       └── gemini/
-│
-├── monitor/                # 健康检测 + 熔断 (参考 one-api monitor/)
-│   ├── health.go           # 10s ping + 5min 周期性
-│   └── circuit.go          # ShouldDisableChannel 决策
-│
-└── router.go               # /v1/* 路由注册
+└── relay/                  # 路由引擎 (参考 one-api relay/)
+    ├── adaptor.go          # GetAdaptor(apiType) 分发器 + Adaptor 接口 (9方法)
+    ├── adaptor_deepseek.go # DeepSeek adaptor
+    ├── adaptor_glm.go     # GLM adaptor
+    ├── adaptor_qwen.go    # Qwen adaptor
+    ├── error.go            # 错误处理 + 重试决策
+    └── util.go             # 通用工具 (计费公式等)
 ```
 
 **转发流水线**：限流 → 鉴权 → 余额检查+预扣 → 路由决策(内存缓存) → 请求重写 → 转发 → 响应处理(后扣) → MQ
@@ -174,7 +171,7 @@ internal/domain/proxy/
 
 ## 实施原则
 
-1. **单体优先** — 所有 domain 在同一进程内, 通过 Go interface 调用; 用户 >5000 后按需抽取 gRPC 服务
+1. **单体优先** — 所有 domain 在同一进程内, 通过具体 struct 调用; 用户 >5000 后按需抽取 gRPC 服务
 2. **参考代码驱动** — proxy 模块直接参考 `ref/one-api/` 代码, 不重新发明轮子
 3. **先协议后扩展** — 先实现 OpenAI 兼容协议 (P0), Anthropic/Gemini 原生协议 (P0) 紧随其后, 模型变体/多模态 (P1)
 4. **测试即文档** — `go test ./internal/domain/...` 覆盖每个 domain 的核心路径; proxy 模块必须含流式/熔断/重试测试
@@ -191,7 +188,7 @@ internal/domain/proxy/
 | **重试** | 失败后跨渠道重试（跳过刚失败渠道），仅重试 429/5xx/超时 | one-api `Relay()` 函数 |
 | **计费** | 两阶段：预扣(估算) → 转发 → 后扣(按实际多退少补) + 批量更新 | one-api `BatchUpdateEnabled` |
 | **Adaptor** | 9 方法接口: Init/GetRequestURL/SetupRequestHeader/ConvertRequest/ConvertImageRequest/DoRequest/DoResponse/GetModelList/GetChannelName | one-api `relay/adaptor/interface.go` |
-| **渠道选择** | `ability_index` 表 (group+model+channel 复合索引) + 全量内存缓存 `InitChannelCache`, `SyncChannelCache` 60s 定时刷新 | one-api `model/ability.go` + `model/cache.go` |
+| **渠道选择** | `abilities` 表 (group+model+channel 复合索引) + 全量内存缓存 `InitChannelCache`, `SyncChannelCache` 60s 定时刷新 | one-api `model/ability.go` + `model/cache.go` |
 | **流式转发** | SSE 流式输出, io.Copy 零拷贝, 流中断自动切换备用供应商 | one-api relay 核心函数 |
 
 ### 关键风险
@@ -219,17 +216,20 @@ internal/domain/proxy/
 cmd/fastax/main.go          # 入口
 internal/
 ├── shared/                  # 共享层
-│   ├── model/               #   GORM 模型 (18+ 表)
+│   ├── model/               #   GORM 模型 (33 表)
 │   ├── config/              #   Viper 配置
 │   ├── cache/               #   Redis 缓存
 │   ├── middleware/           #   Gin 中间件 (auth/ratelimit/language/distributor)
-│   ├── relay/               #   路由引擎 (adaptor 分发 + 转发控制)
+│   ├── crypto/              #   AES-256-GCM 加密
+│   ├── mask/                #   数据脱敏
+│   ├── response/            #   统一响应格式 + 多语言错误消息
 │   └── i18n/                #   国际化
 ├── domain/                  # 业务域 (各含 service.go + handler.go)
-│   ├── user/ ├── token/ ├── order/ ├── payment/ ├── proxy/ (核心)
+│   ├── user/ ├── token/ ├── order/ ├── payment/ ├── proxy/ (核心, 含 relay/)
 │   ├── vendor/ ├── risk/ ├── notify/ ├── stats/ ├── commission/ ├── log/
 │   ├── guardrail/ ├── byok/ ├── cost/ ├── enterprise/ ├── market/ ├── plugin/
-└── router/                  # Gin 路由 (api.go + relay.go)
+│   └── system/              # 系统配置管理
+└── router/                  # Gin 路由 (router.go 统一注册)
 ```
 
 ## 注意事项

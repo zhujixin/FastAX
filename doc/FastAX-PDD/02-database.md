@@ -576,6 +576,81 @@ CREATE TABLE `provider_health` (
 CREATE INDEX idx_health_provider ON provider_health(provider_id, period_start);
 ```
 
+##### `user_budget` — 用户预算表
+
+```sql
+CREATE TABLE `user_budgets` (
+  `id` INTEGER PRIMARY KEY,
+  `user_id` INTEGER NOT NULL UNIQUE REFERENCES user(id),
+  `period` TEXT NOT NULL DEFAULT 'monthly',  -- daily, weekly, monthly
+  `limit` REAL NOT NULL,                      -- 预算上限
+  `spent` REAL DEFAULT 0,                     -- 当前周期已消费
+  `created_at` TEXT NOT NULL,
+  `updated_at` TEXT NOT NULL
+);
+```
+
+##### `cost_alert` — 成本告警配置表
+
+```sql
+CREATE TABLE `cost_alerts` (
+  `id` INTEGER PRIMARY KEY,
+  `user_id` INTEGER NOT NULL UNIQUE REFERENCES user(id),
+  `thresholds` TEXT NOT NULL,                 -- JSON array e.g. "[50,80,100]"
+  `created_at` TEXT NOT NULL,
+  `updated_at` TEXT NOT NULL
+);
+```
+
+#### 6.2.12 路由相关表
+
+##### `ability` — 渠道能力索引表 (路由核心)
+
+```sql
+CREATE TABLE `abilities` (
+  `id` INTEGER PRIMARY KEY,
+  `group` TEXT NOT NULL,                      -- 模型组 (default, openai, anthropic...)
+  `model` TEXT NOT NULL,                      -- 模型名称 (gpt-4, claude-3...)
+  `channel_id` INTEGER NOT NULL REFERENCES suppliers(id),
+  `enabled` INTEGER DEFAULT 1,
+  UNIQUE(group, model, channel_id)
+);
+CREATE INDEX idx_ability ON abilities(`group`, model);
+```
+
+> 参考 one-api `model/ability.go`。路由引擎通过 `group+model → []Channel` 做 O(1) 内存缓存查询。
+
+#### 6.2.13 提现相关表
+
+##### `withdrawal` — 佣金提现记录表
+
+```sql
+CREATE TABLE `withdrawal` (
+  `id` INTEGER PRIMARY KEY,
+  `agent_id` INTEGER NOT NULL REFERENCES user(id),
+  `amount` TEXT NOT NULL,                     -- 提现金额
+  `status` TEXT DEFAULT 'pending',
+  `reason` TEXT,
+  `created_at` TEXT NOT NULL,
+  `handled_at` TEXT
+);
+CREATE INDEX idx_withdrawal_agent ON withdrawal(agent_id, status);
+```
+
+#### 6.2.14 ER 图补充
+
+```
+  ── 新增实体 ──
+
+  Channel (suppliers) ──1:N── Ability ───────── 路由索引 (group+model+channel)
+       │
+  Commission ──1:N── Withdrawal ────────────── 佣金提现
+       │
+  User ──1:1── UserBudget ──────────────────── 预算设置
+       │
+       ──1:1── CostAlert ───────────────────── 成本告警
+```
+
 ### 6.3 Redis 缓存设计
 
 | Key 模式 | Value 类型 | 说明 | TTL |

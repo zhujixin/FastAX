@@ -103,3 +103,34 @@ func (h *Handler) SetAlert(c *gin.Context) {
 	}
 	response.Success(c, alert)
 }
+
+// --- Cache Management ---
+
+// GetCacheStats 获取语义缓存统计
+func (h *Handler) GetCacheStats(c *gin.Context) {
+	stats, err := h.svc.GetCacheStats()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, stats)
+}
+
+// UpdateCacheConfig 更新缓存策略配置
+func (h *Handler) UpdateCacheConfig(c *gin.Context) {
+	var req struct {
+		Enabled              bool    `json:"enabled"`
+		SimilarityThreshold  float64 `json:"similarity_threshold"`
+		TTLSeconds           int     `json:"ttl_seconds"`
+		MaxEntries           int     `json:"max_entries"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	if err := h.svc.UpdateCacheConfig(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, req)
+}

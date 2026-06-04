@@ -14,7 +14,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	db.AutoMigrate(&model.SemanticCache{})
+	db.AutoMigrate(&model.SemanticCache{}, &model.UserBudget{}, &model.CostAlert{})
 	return db
 }
 

@@ -24,8 +24,8 @@
 #### 5.11.2 护栏规则配置
 
 ```
-guardrail_rule 表:
-  rule_id, name, stage(before/after), type(pii/injection/secret/content),
+guardrail_rules 表:
+  id, name, stage(before/after), type(pii/injection/secret/content),
   action(block/redact/warn), conditions(JSON), enabled, priority
 
 执行模式:
@@ -38,3 +38,38 @@ guardrail_rule 表:
   护栏故障不阻塞主请求 (bypass 熔断)
 ```
 
+#### 5.11.3 API 端点
+
+| 接口 | 方法 | 认证 | 说明 |
+|------|------|------|------|
+| `/api/admin/guardrails/rules` | GET | Admin | 规则列表 |
+| `/api/admin/guardrails/rules` | POST | Admin | 创建规则 |
+| `/api/admin/guardrails/rules/:id` | PUT | Admin | 更新规则 |
+| `/api/admin/guardrails/rules/:id` | DELETE | Admin | 删除规则 |
+| `/api/admin/guardrails/rules/:id/enabled` | PUT | Admin | 启用/禁用规则 |
+| `/api/admin/guardrails/logs` | GET | Admin | 检测日志查询 (按 trace_id/user_id/stage 筛选) |
+| `/api/admin/guardrails/detect` | POST | Admin | 实时检测测试 (提交文本，返回检测结果) |
+| `/api/admin/guardrails/config` | PUT | Admin | 全局配置 (模式切换/启用开关) |
+
+#### 5.11.4 Service 方法
+
+```go
+// 规则管理
+CreateRule(req *RuleRequest) (*GuardrailRule, error)
+ListRules(stage string) ([]GuardrailRule, error)
+SetRuleEnabled(id uint, enabled bool) error
+UpdateRule(id uint, req *RuleRequest) (*GuardrailRule, error)
+DeleteRule(id uint) error
+
+// 检测引擎
+Detect(req *DetectRequest) (*DetectResult, error)
+  // DetectRequest: { text, stage, types[] }
+  // DetectResult: { passed, findings[{type, entity, action}] }
+
+// 日志查询
+ListLogs(traceID string, userID uint, stage string) ([]GuardrailLog, error)
+
+// 配置管理
+UpdateGlobalConfig(mode string, enabled bool) error
+GetConfig() map[string]interface{}
+```

@@ -88,9 +88,17 @@ func (a *QwenAdaptor) ConvertImageRequest(req *ImageRequest) ([]byte, error) {
 }
 
 func (a *QwenAdaptor) DoRequest(ctx context.Context, meta *SupplierMeta, body io.Reader) (*http.Response, error) {
-	url, _ := a.GetRequestURL(meta)
-	httpReq, _ := http.NewRequestWithContext(ctx, "POST", url, body)
-	a.SetupRequestHeader(httpReq, meta)
+	url, err := a.GetRequestURL(meta)
+	if err != nil {
+		return nil, fmt.Errorf("build qwen request url: %w", err)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, body)
+	if err != nil {
+		return nil, fmt.Errorf("create qwen request: %w", err)
+	}
+	if err := a.SetupRequestHeader(httpReq, meta); err != nil {
+		return nil, fmt.Errorf("setup qwen request header: %w", err)
+	}
 	return http.DefaultClient.Do(httpReq)
 }
 

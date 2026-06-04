@@ -134,21 +134,22 @@ func (s *Service) UpdateAll(updates map[string]string) error {
 	return nil
 }
 
-// Get returns a single config value
+// Get returns a single config value.
+// Uses a write lock for simplicity — Get is not on a hot path and the extra
+// contention from briefly holding a write lock is negligible compared to the
+// complexity of lock escalation (RLock → Lock → RLock).
 func (s *Service) Get(key string) string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if v, ok := s.cache[key]; ok {
 		return v
 	}
+
 	// Lazy-load from DB
 	var row SystemConfig
 	if err := s.db.Where("config_key = ?", key).First(&row).Error; err == nil {
-		s.mu.RUnlock()
-		s.mu.Lock()
 		s.cache[key] = row.ConfigValue
-		s.mu.Unlock()
-		s.mu.RLock()
 		return row.ConfigValue
 	}
 	return ""

@@ -22,6 +22,39 @@ func getConfigPath() string {
 	return "config.yaml"
 }
 
+// validateConfig performs startup safety checks on critical configuration.
+// It exits fatally if required values are missing or invalid in production mode.
+func validateConfig(cfg *config.Config) {
+	mode := cfg.Server.Mode
+	isProd := mode == gin.ReleaseMode
+
+	// JWT secrets MUST be configured in production
+	if cfg.JWT.Secret == "" {
+		if isProd {
+			log.Fatal("FATAL: jwt.secret is empty — must be configured in config.yaml for production")
+		}
+		log.Println("WARNING: jwt.secret is empty — using insecure default (dev only)")
+	}
+
+	// Refresh token secret: warn if not configured independently
+	if cfg.JWT.RefreshSecret == "" {
+		if isProd {
+			log.Println("WARNING: jwt.refresh_secret is empty — using derived key (secret+\"-refresh\")")
+		}
+	}
+
+	// Encryption key: validate if configured
+	if cfg.Security.EncryptionKey != "" {
+		key := cfg.GetEncryptionKey()
+		if key == nil {
+			log.Fatal("FATAL: security.encryption_key is configured but cannot be decoded as 32-byte hex/base64")
+		}
+		if isProd {
+			log.Println("AES-256 encryption key configured — API keys will be stored encrypted")
+		}
+	}
+}
+
 func main() {
 	// Load config
 	cfgPath := getConfigPath()
@@ -29,6 +62,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Validate critical configuration
+	validateConfig(cfg)
 
 	// Initialize database
 	db, err := model.InitDB(cfg.Database)

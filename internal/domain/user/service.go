@@ -14,6 +14,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/fastax/fastax-server/internal/shared/cache"
@@ -592,19 +593,22 @@ func (s *Service) GetOAuthRedirectURL(provider, callbackURL, requestHost string)
 	}
 }
 
+// isAllowedCallback validates the callback URL against a whitelist of hosts.
+// Uses url.Parse for strict host comparison instead of string prefix matching,
+// which prevents bypasses like https://localhost.evil.com matching "localhost".
 func isAllowedCallback(urlStr string, allowed map[string]bool) bool {
 	if urlStr == "" {
 		return false
 	}
-	// Simple validation: URL must start with http:// or https:// and host must be allowed
-	for host := range allowed {
-		if len(urlStr) > len("https://"+host) {
-			prefix1 := "https://" + host
-			prefix2 := "http://" + host
-			if urlStr[:len(prefix1)] == prefix1 || urlStr[:len(prefix2)] == prefix2 {
-				return true
-			}
-		}
+	parsed, err := url.Parse(urlStr)
+	if err != nil || parsed.Host == "" {
+		return false
 	}
-	return false
+	// Only allow http/https schemes
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return false
+	}
+	// Strip port for host comparison (url.Parse includes port in Host)
+	host := parsed.Hostname()
+	return allowed[host]
 }

@@ -56,9 +56,17 @@ func (a *GLMAdaptor) ConvertImageRequest(req *ImageRequest) ([]byte, error) {
 }
 
 func (a *GLMAdaptor) DoRequest(ctx context.Context, meta *SupplierMeta, body io.Reader) (*http.Response, error) {
-	url, _ := a.GetRequestURL(meta)
-	httpReq, _ := http.NewRequestWithContext(ctx, "POST", url, body)
-	a.SetupRequestHeader(httpReq, meta)
+	url, err := a.GetRequestURL(meta)
+	if err != nil {
+		return nil, fmt.Errorf("build glm request url: %w", err)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, body)
+	if err != nil {
+		return nil, fmt.Errorf("create glm request: %w", err)
+	}
+	if err := a.SetupRequestHeader(httpReq, meta); err != nil {
+		return nil, fmt.Errorf("setup glm request header: %w", err)
+	}
 	return http.DefaultClient.Do(httpReq)
 }
 

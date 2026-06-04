@@ -3,7 +3,9 @@
 /* ===== FastAX Base Styles ===== */
 
 :root {
-  --color-primary: #1677ff;
+  --color-primary: #4D6BFE;
+  --color-primary-dark: #3b53d4;
+  --color-secondary: #6366f1;
   --color-success: #52c41a;
   --color-warning: #faad14;
   --color-error: #ff4d4f;
@@ -16,6 +18,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #0a0a10;
+  color: #ffffff;
 }
 
 #root {
@@ -25,5 +29,192 @@ body {
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #bfbfbf; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* 隐藏水平滚动条 */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 自定义动画 */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(77, 107, 254, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(77, 107, 254, 0.4); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 应用动画的类 */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-blink {
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, #4D6BFE 0%, #6366f1 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 毛玻璃效果 */
+.glass {
+  background: rgba(10, 10, 16, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 悬停光晕效果 */
+.hover-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(77, 107, 254, 0.15) 0%, transparent 70%);
+  transition: width 0.3s ease, height 0.3s ease;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.hover-glow:hover::before {
+  width: 300%;
+  height: 300%;
+}
+
+.hover-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 按钮样式增强 */
+.btn-primary {
+  background: linear-gradient(135deg, #4D6BFE 0%, #3b53d4 100%);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(77, 107, 254, 0.3);
+}
+
+.btn-outline {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 卡片样式 */
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 标签样式 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(77, 107, 254, 0.1);
+  color: #4D6BFE;
+  border: 1px solid rgba(77, 107, 254, 0.2);
+}
+
+/* 选区样式 */
+::selection {
+  background: rgba(77, 107, 254, 0.3);
+  color: #ffffff;
+}
+
+/* 焦点样式 */
+:focus-visible {
+  outline: 2px solid rgba(77, 107, 254, 0.5);
+  outline-offset: 2px;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 响应式字体 */
+@media (max-width: 768px) {
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.75rem; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+}
+
+/* 打印样式 */
+@media print {
+  body { background: white; color: black; }
+  nav, footer { display: none; }
+}

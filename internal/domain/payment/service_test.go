@@ -83,7 +83,7 @@ func TestService_CreatePayment_Success(t *testing.T) {
 		OrderID: order.ID,
 		Method:  "wechat",
 		Gateway: "wechat",
-	})
+	}, order.UserID)
 	if err != nil {
 		t.Fatalf("CreatePayment() error = %v", err)
 	}
@@ -110,7 +110,7 @@ func TestCreatePayment_OrderNotFound(t *testing.T) {
 		OrderID: 99999,
 		Method:  "wechat",
 		Gateway: "wechat",
-	})
+	}, 1)
 	if err == nil {
 		t.Fatal("expected error for nonexistent order")
 	}
@@ -128,7 +128,7 @@ func TestCreatePayment_OrderNotPending(t *testing.T) {
 		OrderID: order.ID,
 		Method:  "wechat",
 		Gateway: "wechat",
-	})
+	}, order.UserID)
 	if err == nil {
 		t.Fatal("expected error for non-pending order")
 	}
@@ -141,7 +141,7 @@ func TestService_HandleCallback_Success(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 	order := createPendingOrder(t, db)
-	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"})
+	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"}, order.UserID)
 
 	err := svc.HandleCallback(&PaymentCallback{
 		OrderID:        order.ID,
@@ -155,7 +155,7 @@ func TestService_HandleCallback_Success(t *testing.T) {
 	}
 
 	// Verify payment updated
-	payment, _ := svc.GetPaymentByOrderID(order.ID)
+	payment, _ := svc.GetPaymentByOrderID(order.ID, order.UserID)
 	if payment.Status != "success" {
 		t.Errorf("payment status = %v, want success", payment.Status)
 	}
@@ -175,7 +175,7 @@ func TestHandleCallback_Failure(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 	order := createPendingOrder(t, db)
-	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"})
+	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"}, order.UserID)
 
 	err := svc.HandleCallback(&PaymentCallback{
 		OrderID:        order.ID,
@@ -187,7 +187,7 @@ func TestHandleCallback_Failure(t *testing.T) {
 		t.Fatalf("HandleCallback() error = %v", err)
 	}
 
-	payment, _ := svc.GetPaymentByOrderID(order.ID)
+	payment, _ := svc.GetPaymentByOrderID(order.ID, order.UserID)
 	if payment.Status != "failed" {
 		t.Errorf("payment status = %v, want failed", payment.Status)
 	}
@@ -204,7 +204,7 @@ func TestHandleCallback_Idempotent(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 	order := createPendingOrder(t, db)
-	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"})
+	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "wechat", Gateway: "wechat"}, order.UserID)
 
 	cb := &PaymentCallback{
 		OrderID:        order.ID,
@@ -409,9 +409,9 @@ func TestService_GetPaymentByOrderID(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 	order := createPendingOrder(t, db)
-	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "alipay", Gateway: "alipay"})
+	svc.CreatePayment(&CreatePaymentRequest{OrderID: order.ID, Method: "alipay", Gateway: "alipay"}, order.UserID)
 
-	payment, err := svc.GetPaymentByOrderID(order.ID)
+	payment, err := svc.GetPaymentByOrderID(order.ID, order.UserID)
 	if err != nil {
 		t.Fatalf("GetPaymentByOrderID() error = %v", err)
 	}
@@ -424,7 +424,7 @@ func TestGetPaymentByOrderID_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	_, err := svc.GetPaymentByOrderID(99999)
+	_, err := svc.GetPaymentByOrderID(99999, 1)
 	if err == nil {
 		t.Fatal("expected error for nonexistent payment")
 	}

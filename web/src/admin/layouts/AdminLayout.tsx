@@ -38,9 +38,11 @@ const adminMenuItems = [
     children: [
       { key: "/admin/tokens", label: "nav.products" },
       { key: "/admin/channels", label: "nav.channels" },
+{ key: "/admin/suppliers", label: "nav.suppliers" },
     ],
   },
   { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "nav.orders" },
+{ key: "/admin/reports", icon: <BarChartOutlined />, label: "nav.reports" },
   {
     key: "risk",
     icon: <AlertOutlined />,
@@ -66,6 +68,8 @@ const adminMenuItems = [
   { key: "/admin/settings", icon: <SettingOutlined />, label: "nav.settings" },
   { key: "/admin/audit", icon: <AuditOutlined />, label: "nav.auditLog" },
   { key: "/admin/enterprise", icon: <TeamOutlined />, label: "nav.enterprise" },
+  { key: "/admin/system", icon: <SettingOutlined />, label: "nav.system" },
+{ key: "/admin/system/admins", label: "nav.admins" },
   { key: "/admin/cost", icon: <DollarCircleOutlined />, label: "nav.cost" },
 ];
 
@@ -98,7 +102,11 @@ export default function AdminLayout() {
     "nav.guardrailRules": "护栏规则",
     "nav.guardrailLogs": "检测日志",
     "nav.enterprise": "企业管理",
+    "nav.system": "系统配置",
     "nav.cost": "成本优化",
+"nav.suppliers": "平台供应商",
+"nav.reports": "经营报表",
+"nav.admins": "管理员管理",
   };
 
   const getSelectedKeys = () => {

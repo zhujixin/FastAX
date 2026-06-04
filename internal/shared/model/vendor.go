@@ -45,6 +45,8 @@ type SupplierProduct struct {
 	StockRemaining string    `gorm:"size:32"`
 	Status         string    `gorm:"default:pending_review;size:32;index"`
 	HealthStatus   string    `gorm:"default:unknown;size:32;index"`
+	MinPrice       string    `gorm:"size:32"` // 平台最低限价 (R-BIZ-50)
+	MaxPrice       string    `gorm:"size:32"` // 平台最高限价 (R-BIZ-50)
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

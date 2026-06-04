@@ -63,7 +63,7 @@ func TestHandler_CreateSubAccount_Success(t *testing.T) {
 	body := SubAccountRequest{
 		Email:    "sub@example.com",
 		Password: "password123",
-		TokenQuota: 1000,
+		TokenQuota: "1000",
 		Permissions: []string{"read", "write"},
 	}
 	jsonBody, _ := json.Marshal(body)
@@ -293,9 +293,9 @@ func TestHandler_UpdateQuota_Success(t *testing.T) {
 	r.PUT("/enterprise/sub-accounts/:id/quota", h.UpdateQuota)
 
 	createEnterpriseUser(t, db)
-	db.Create(&model.SubAccount{ParentID: 1, Email: "a@example.com", PasswordHash: "pw", TokenQuota: 100, Status: 1})
+	db.Create(&model.SubAccount{ParentID: 1, Email: "a@example.com", PasswordHash: "pw", TokenQuota: "100", Status: 1})
 
-	body := map[string]int64{"token_quota": 5000}
+	body := map[string]string{"token_quota": "5000"}
 	jsonBody, _ := json.Marshal(body)
 
 	w := httptest.NewRecorder()
@@ -310,7 +310,7 @@ func TestHandler_UpdateQuota_Success(t *testing.T) {
 	// Verify DB update
 	var updated model.SubAccount
 	db.First(&updated, 1)
-	if updated.TokenQuota != 5000 {
+	if updated.TokenQuota != "5000" {
 		t.Errorf("db token_quota = %v, want 5000", updated.TokenQuota)
 	}
 }
@@ -322,7 +322,7 @@ func TestHandler_UpdateQuota_NotFound(t *testing.T) {
 
 	createEnterpriseUser(t, db)
 
-	body := map[string]int64{"token_quota": 5000}
+	body := map[string]string{"token_quota": "5000"}
 	jsonBody, _ := json.Marshal(body)
 
 	w := httptest.NewRecorder()
@@ -340,7 +340,7 @@ func TestHandler_UpdateQuota_InvalidID(t *testing.T) {
 	r := setupRouter(h)
 	r.PUT("/enterprise/sub-accounts/:id/quota", h.UpdateQuota)
 
-	body := map[string]int64{"token_quota": 5000}
+	body := map[string]string{"token_quota": "5000"}
 	jsonBody, _ := json.Marshal(body)
 
 	w := httptest.NewRecorder()

@@ -18,27 +18,43 @@ import (
 
 	"github.com/fastax/fastax-server/internal/shared/cache"
 	"github.com/fastax/fastax-server/internal/shared/config"
+	"github.com/fastax/fastax-server/internal/shared/constants"
 	"github.com/fastax/fastax-server/internal/shared/middleware"
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
+// ─── 安全常量 ───
+
+const (
+	BcryptCost        = 12
+	MaxLoginAttempts  = 5
+	LockoutDuration   = 15 * time.Minute
+)
+
 // Service 用户服务结构体
 type Service struct {
-	db     *gorm.DB
-	cache  *cache.RedisClient
-	cfg    *config.JWTConfig
-	verify *VerifyService
+	db       *gorm.DB
+	cache    *cache.RedisClient
+	cfg      *config.JWTConfig
+	verify   *VerifyService
+	oauthCfg *OAuthConfig
 }
 
 // NewService 创建用户服务实例
-func NewService(db *gorm.DB, redis *cache.RedisClient, cfg *config.JWTConfig) *Service {
+func NewService(db *gorm.DB, redis *cache.RedisClient, cfg *config.Config) *Service {
 	return &Service{
-		db:     db,
-		cache:  redis,
-		cfg:    cfg,
+		db:    db,
+		cache: redis,
+		cfg:   &cfg.JWT,
 		verify: NewVerifyService(redis),
+		oauthCfg: &OAuthConfig{
+			GoogleClientID:     cfg.OAuth.Google.ClientID,
+			GoogleClientSecret: cfg.OAuth.Google.ClientSecret,
+			GitHubClientID:     cfg.OAuth.GitHub.ClientID,
+			GitHubClientSecret: cfg.OAuth.GitHub.ClientSecret,
+		},
 	}
 }
 
@@ -92,7 +108,7 @@ func (s *Service) Register(req *RegisterRequest) (*LoginResponse, error) {
 		return nil, errors.New("invalid or expired verification code")
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), BcryptCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
@@ -107,8 +123,8 @@ func (s *Service) Register(req *RegisterRequest) (*LoginResponse, error) {
 		PasswordHash:      string(hashed),
 		Email:             req.Email,
 		Phone:             req.Phone,
-		Role:              "user",
-		Level:             "normal",
+		Role:              constants.RoleUser,
+		Level:             constants.LevelNormal,
 		Status:            1,
 		PreferredLanguage: lang,
 	}
@@ -138,12 +154,14 @@ func (s *Service) Login(req *LoginRequest) (*LoginResponse, error) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		// Atomic update to prevent race condition on login failure counter
+		s.db.Model(&model.User{}).Where("id = ?", user.ID).
+			UpdateColumn("login_fail_count", gorm.Expr("login_fail_count + 1"))
 		user.LoginFailCount++
-		if user.LoginFailCount >= 5 {
-			until := time.Now().Add(15 * time.Minute)
-			user.LockedUntil = &until
+		if user.LoginFailCount >= MaxLoginAttempts {
+			until := time.Now().Add(LockoutDuration)
+			s.db.Model(&user).Update("locked_until", until)
 		}
-		s.db.Save(&user)
 		return nil, errors.New("invalid account or password")
 	}
 
@@ -165,7 +183,6 @@ func (s *Service) RefreshToken(refreshToken string) (*LoginResponse, error) {
 	if err != nil || userIDStr == "" {
 		return nil, errors.New("invalid or expired refresh token")
 	}
-	s.cache.Delete(key)
 
 	var user model.User
 	if err := s.db.First(&user, userIDStr).Error; err != nil {
@@ -175,7 +192,15 @@ func (s *Service) RefreshToken(refreshToken string) (*LoginResponse, error) {
 		return nil, errors.New("account is frozen")
 	}
 
-	return s.generateTokens(&user)
+	// Generate new tokens first, then delete old refresh token.
+	// This prevents permanent lockout if token generation fails mid-way.
+	resp, err := s.generateTokens(&user)
+	if err != nil {
+		return nil, err
+	}
+	s.cache.Delete(key)
+
+	return resp, nil
 }
 
 func (s *Service) GetUser(userID uint) (*UserResponse, error) {
@@ -227,7 +252,7 @@ func (s *Service) ResetPassword(req *ResetPasswordRequest) error {
 	}
 
 	// Hash the new password
-	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 12)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
@@ -241,13 +266,23 @@ func (s *Service) ResetPassword(req *ResetPasswordRequest) error {
 	return nil
 }
 
+// effectiveRefreshSecret returns the refresh token signing key.
+// If jwt.refresh_secret is configured, it is used directly for cryptographic independence.
+// Otherwise, falls back to secret+"-refresh" for backward compatibility.
+func (s *Service) effectiveRefreshSecret() string {
+	if s.cfg.RefreshSecret != "" {
+		return s.cfg.RefreshSecret
+	}
+	return s.cfg.Secret + "-refresh"
+}
+
 func (s *Service) generateTokens(user *model.User) (*LoginResponse, error) {
 	accessToken, err := middleware.GenerateAccessToken(user.ID, user.Role, s.cfg.Secret, s.cfg.AccessExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generate access token: %w", err)
 	}
 
-	refreshToken, err := middleware.GenerateRefreshToken(user.ID, s.cfg.Secret, s.cfg.RefreshExpiry)
+	refreshToken, err := middleware.GenerateRefreshToken(user.ID, s.effectiveRefreshSecret(), s.cfg.RefreshExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generate refresh token: %w", err)
 	}
@@ -334,7 +369,7 @@ func (s *Service) SetUserStatus(id uint, status int) error {
 	if err := s.db.First(&user, id).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
-	if user.Role == "super_admin" && status == 0 {
+	if user.Role == constants.RoleSuperAdmin && status == 0 {
 		return errors.New("cannot freeze super admin account")
 	}
 
@@ -350,7 +385,7 @@ func (s *Service) SetUserStatus(id uint, status int) error {
 
 // SetUserLevel updates user level.
 func (s *Service) SetUserLevel(id uint, level string) error {
-	validLevels := map[string]bool{"normal": true, "vip": true, "enterprise": true}
+	validLevels := map[string]bool{constants.LevelNormal: true, constants.LevelVIP: true, constants.LevelEnterprise: true}
 	if !validLevels[level] {
 		return fmt.Errorf("invalid level: %s, must be normal/vip/enterprise", level)
 	}
@@ -420,6 +455,44 @@ func (s *Service) GetUserDetail(id uint) (*UserDetailResponse, error) {
 	}, nil
 }
 
+// --- Admin Account Management ---
+
+// ListAdmins returns all users with admin or super_admin roles.
+func (s *Service) ListAdmins() ([]UserResponse, error) {
+	var users []model.User
+	if err := s.db.Where("role IN ?", []string{constants.RoleAdmin, constants.RoleSuperAdmin}).Order("created_at desc").Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("list admins: %w", err)
+	}
+	result := make([]UserResponse, len(users))
+	for i, u := range users {
+		result[i] = *toUserResponse(&u)
+	}
+	return result, nil
+}
+
+// CreateAdmin creates a new admin account.
+func (s *Service) CreateAdmin(username, password, email, role string) (*UserResponse, error) {
+	if role != constants.RoleAdmin && role != constants.RoleSuperAdmin {
+		return nil, fmt.Errorf("invalid role: %s", role)
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+	user := model.User{
+		Username:     username,
+		PasswordHash: string(hash),
+		Email:        email,
+		Role:         role,
+		Level:        constants.LevelNormal,
+		Status:       1,
+	}
+	if err := s.db.Create(&user).Error; err != nil {
+		return nil, fmt.Errorf("create admin: %w", err)
+	}
+	return toUserResponse(&user), nil
+}
+
 // ---------- OAuth ----------
 
 type OAuthConfig struct {
@@ -442,6 +515,18 @@ type OAuthLoginRequest struct {
 	Code     string `json:"code" binding:"required"`
 }
 
+// IsOAuthConfigured returns true if the OAuth provider has client credentials configured.
+func (s *Service) IsOAuthConfigured(provider string) bool {
+	switch provider {
+	case "google":
+		return s.oauthCfg.GoogleClientID != "" && s.oauthCfg.GoogleClientSecret != ""
+	case "github":
+		return s.oauthCfg.GitHubClientID != "" && s.oauthCfg.GitHubClientSecret != ""
+	default:
+		return false
+	}
+}
+
 // OAuthLogin handles OAuth login flow.
 func (s *Service) OAuthLogin(req *OAuthLoginRequest) (*LoginResponse, error) {
 	// In production, exchange code for token and get user info from provider
@@ -462,8 +547,8 @@ func (s *Service) OAuthLogin(req *OAuthLoginRequest) (*LoginResponse, error) {
 		user = model.User{
 			Username:          userInfo.Name,
 			Email:             userInfo.Email,
-			Role:              "user",
-			Level:             "normal",
+			Role:              constants.RoleUser,
+			Level:             constants.LevelNormal,
 			Status:            1,
 			PreferredLanguage: "en",
 		}
@@ -484,13 +569,42 @@ func (s *Service) OAuthLogin(req *OAuthLoginRequest) (*LoginResponse, error) {
 }
 
 // GetOAuthRedirectURL returns the OAuth redirect URL for a provider.
-func (s *Service) GetOAuthRedirectURL(provider, callbackURL string) (string, error) {
+// callbackURL is validated against allowed origins to prevent open redirect attacks.
+func (s *Service) GetOAuthRedirectURL(provider, callbackURL, requestHost string) (string, error) {
+	// Validate callback URL against whitelist to prevent open redirect.
+	// Allowed hosts: localhost/127.0.0.1 (dev) + the actual request host (production).
+	allowedHosts := map[string]bool{
+		"localhost": true, "127.0.0.1": true,
+		requestHost: true,
+	}
+	if !isAllowedCallback(callbackURL, allowedHosts) {
+		return "", fmt.Errorf("invalid callback URL: %s", callbackURL)
+	}
 	switch provider {
 	case "google":
-		return fmt.Sprintf("https://accounts.google.com/o/oauth2/v2/auth?client_id=GOOGLE_CLIENT_ID&redirect_uri=%s&response_type=code&scope=email%%20profile", callbackURL), nil
+		clientID := s.oauthCfg.GoogleClientID
+		return fmt.Sprintf("https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=email%%20profile", clientID, callbackURL), nil
 	case "github":
-		return fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=GITHUB_CLIENT_ID&redirect_uri=%s&scope=user:email", callbackURL), nil
+		clientID := s.oauthCfg.GitHubClientID
+		return fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=user:email", clientID, callbackURL), nil
 	default:
 		return "", fmt.Errorf("unsupported provider: %s", provider)
 	}
+}
+
+func isAllowedCallback(urlStr string, allowed map[string]bool) bool {
+	if urlStr == "" {
+		return false
+	}
+	// Simple validation: URL must start with http:// or https:// and host must be allowed
+	for host := range allowed {
+		if len(urlStr) > len("https://"+host) {
+			prefix1 := "https://" + host
+			prefix2 := "http://" + host
+			if urlStr[:len(prefix1)] == prefix1 || urlStr[:len(prefix2)] == prefix2 {
+				return true
+			}
+		}
+	}
+	return false
 }

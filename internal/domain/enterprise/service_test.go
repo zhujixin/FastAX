@@ -25,7 +25,7 @@ func TestService_CreateSubAccount(t *testing.T) {
 	db.Create(&model.User{Username: "enterprise", PasswordHash: "x", Role: "enterprise", Status: 1})
 
 	resp, err := svc.CreateSubAccount(1, &SubAccountRequest{
-		Email: "sub@test.com", Password: "password123", TokenQuota: 10000,
+		Email: "sub@test.com", Password: "password123", TokenQuota: "10000",
 		Permissions: []string{"api:chat", "api:embedding"},
 	})
 	if err != nil {
@@ -34,7 +34,7 @@ func TestService_CreateSubAccount(t *testing.T) {
 	if resp.Email != "sub@test.com" {
 		t.Errorf("email = %v", resp.Email)
 	}
-	if resp.TokenQuota != 10000 {
+	if resp.TokenQuota != "10000" {
 		t.Errorf("token_quota = %v, want 10000", resp.TokenQuota)
 	}
 }
@@ -93,13 +93,13 @@ func TestService_UpdateQuota(t *testing.T) {
 	db.Create(&model.User{Username: "enterprise", PasswordHash: "x", Role: "enterprise", Status: 1})
 	svc.CreateSubAccount(1, &SubAccountRequest{Email: "s@test.com", Password: "p123456"})
 
-	err := svc.UpdateQuota(1, 1, 50000)
+	err := svc.UpdateQuota(1, 1, "50000")
 	if err != nil {
 		t.Fatalf("UpdateQuota() error = %v", err)
 	}
 
 	accounts, _ := svc.ListSubAccounts(1)
-	if accounts[0].TokenQuota != 50000 {
+	if accounts[0].TokenQuota != "50000" {
 		t.Errorf("token_quota = %v, want 50000", accounts[0].TokenQuota)
 	}
 }

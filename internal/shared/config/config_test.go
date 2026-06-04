@@ -93,14 +93,14 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Server.Port = %v, want 8080", cfg.Server.Port)
 	}
-	if cfg.Server.Mode != "debug" {
-		t.Errorf("Server.Mode = %v, want debug", cfg.Server.Mode)
+	if cfg.Server.Mode != "release" {
+		t.Errorf("Server.Mode = %v, want release", cfg.Server.Mode)
 	}
 	if cfg.Server.ReadTimeout != 30*time.Second {
 		t.Errorf("Server.ReadTimeout = %v, want 30s", cfg.Server.ReadTimeout)
 	}
-	if cfg.Server.WriteTimeout != 30*time.Second {
-		t.Errorf("Server.WriteTimeout = %v, want 30s", cfg.Server.WriteTimeout)
+	if cfg.Server.WriteTimeout != 60*time.Second {
+		t.Errorf("Server.WriteTimeout = %v, want 60s", cfg.Server.WriteTimeout)
 	}
 	if cfg.Database.WALMode != true {
 		t.Errorf("Database.WALMode = %v, want true", cfg.Database.WALMode)

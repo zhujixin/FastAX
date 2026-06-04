@@ -33,7 +33,7 @@ func NewHealthChecker(db *gorm.DB, interval time.Duration) *HealthChecker {
 	return &HealthChecker{
 		db: db,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: DefaultHealthTimeout,
 		},
 		statuses: make(map[uint]string),
 		interval: interval,

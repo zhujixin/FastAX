@@ -224,7 +224,7 @@ func setupTestService(t *testing.T, upstreamURL string) (*Service, *gorm.DB) {
 	})
 	db.Create(&model.Ability{Group: "default", Model: "gpt-4", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	return svc, db
 }
 
@@ -289,7 +289,7 @@ func TestService_Relay_RetryOn5xx(t *testing.T) {
 	db.Create(&model.Ability{Group: "default", Model: "gpt-4", ChannelID: 1})
 	db.Create(&model.Ability{Group: "default", Model: "gpt-4", ChannelID: 2})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	resp, err := svc.Relay(context.Background(), 1, &RelayRequest{
 		Model:    "gpt-4",
@@ -323,7 +323,7 @@ func TestService_Relay_AllRetriesFail(t *testing.T) {
 	db.Create(&model.Supplier{Code: "s1", Name: "S1", APIBaseURL: server.URL, APIKeyEncrypted: "k", Priority: 10, Weight: 10, Status: 1})
 	db.Create(&model.Ability{Group: "default", Model: "gpt-4", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	_, err := svc.Relay(context.Background(), 1, &RelayRequest{
 		Model:    "gpt-4",
@@ -394,7 +394,7 @@ func setupAnthropicTestService(t *testing.T, upstreamURL string, code string) (*
 	})
 	db.Create(&model.Ability{Group: "default", Model: "claude-sonnet-4-20250514", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	return svc, db
 }
 
@@ -660,7 +660,7 @@ func TestService_ListModels(t *testing.T) {
 	db.Create(&p3)
 	db.Model(&p3).Update("status", 0)
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	models, err := svc.ListModels()
 	if err != nil {
 		t.Fatalf("ListModels error: %v", err)
@@ -674,7 +674,7 @@ func TestService_GetSupplier(t *testing.T) {
 	db := setupTestDB(t)
 	db.Create(&model.Supplier{Code: "s1", Name: "S1", APIBaseURL: "https://s1.com", APIKeyEncrypted: "k", Status: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	supplier, err := svc.GetSupplier(1)
 	if err != nil {
 		t.Fatalf("GetSupplier error: %v", err)
@@ -686,7 +686,7 @@ func TestService_GetSupplier(t *testing.T) {
 
 func TestService_GetSupplier_NotFound(t *testing.T) {
 	db := setupTestDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	_, err := svc.GetSupplier(999)
 	if err == nil {
@@ -810,7 +810,7 @@ func TestHealthChecker_SetGetStatus(t *testing.T) {
 
 func TestService_Stop(t *testing.T) {
 	db := setupTestDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	// Should not panic
 	svc.Stop()
 }
@@ -1072,7 +1072,7 @@ func setupImageTestService(t *testing.T, upstreamURL string) (*Service, *gorm.DB
 	})
 	db.Create(&model.Ability{Group: "default", Model: "dall-e-3", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	return svc, db
 }
 
@@ -1147,7 +1147,7 @@ func TestService_ImageRelay_RetryOn5xx(t *testing.T) {
 	db.Create(&model.Ability{Group: "default", Model: "dall-e-3", ChannelID: 1})
 	db.Create(&model.Ability{Group: "default", Model: "dall-e-3", ChannelID: 2})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	resp, err := svc.ImageRelay(context.Background(), 1, &relay.ImageRequest{
 		Model:  "dall-e-3",
@@ -1169,7 +1169,7 @@ func TestService_ImageRelay_RetryOn5xx(t *testing.T) {
 
 func TestService_ImageRelay_NoChannel(t *testing.T) {
 	db := setupTestDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	_, err := svc.ImageRelay(context.Background(), 1, &relay.ImageRequest{
 		Model:  "nonexistent",
@@ -1191,7 +1191,7 @@ func TestService_ImageRelay_AnthropicUnsupported(t *testing.T) {
 	db.Create(&model.Supplier{Code: "anthropic", Name: "Claude", APIBaseURL: server.URL, APIKeyEncrypted: "k", Priority: 10, Weight: 10, Status: 1})
 	db.Create(&model.Ability{Group: "default", Model: "claude-sonnet-4-20250514", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	// Anthropic adaptor's ConvertImageRequest returns error, so this should fail
 	_, err := svc.ImageRelay(context.Background(), 1, &relay.ImageRequest{
@@ -1220,7 +1220,7 @@ func setupAudioTestService(t *testing.T, upstreamURL string) (*Service, *gorm.DB
 	})
 	db.Create(&model.Ability{Group: "default", Model: "tts-1", ChannelID: 1})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	return svc, db
 }
 
@@ -1330,7 +1330,7 @@ func TestService_AudioRelay_RetryOn5xx(t *testing.T) {
 	db.Create(&model.Ability{Group: "default", Model: "tts-1", ChannelID: 1})
 	db.Create(&model.Ability{Group: "default", Model: "tts-1", ChannelID: 2})
 
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	resp, err := svc.AudioRelay(context.Background(), 1, &relay.AudioRequest{
 		Model: "tts-1",
@@ -1353,7 +1353,7 @@ func TestService_AudioRelay_RetryOn5xx(t *testing.T) {
 
 func TestService_AudioRelay_NoChannel(t *testing.T) {
 	db := setupTestDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	_, err := svc.AudioRelay(context.Background(), 1, &relay.AudioRequest{
 		Model: "nonexistent",

@@ -20,6 +20,7 @@
 package risk
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -224,7 +225,7 @@ func (s *Service) AddBlacklist(req *AddBlacklistRequest) error {
 	rule := model.RiskRule{
 		Name:       fmt.Sprintf("blacklist_%s_%s", req.Type, req.Value),
 		Category:   "blacklist",
-		Conditions: fmt.Sprintf(`{"type":"%s","value":"%s"}`, req.Type, req.Value),
+		Conditions: marshalConditions(req.Type, req.Value),
 		Action:     "block",
 		RiskLevel:  "L4",
 		Enabled:    0, // Disabled by default, just for record
@@ -300,4 +301,12 @@ func extractBlacklistValue(condition string) string {
 		}
 	}
 	return ""
+}
+
+// marshalConditions safely encodes blacklist type and value into a JSON string,
+// preventing injection attacks from unescaped user input.
+func marshalConditions(typ, value string) string {
+	cond := map[string]string{"type": typ, "value": value}
+	data, _ := json.Marshal(cond)
+	return string(data)
 }

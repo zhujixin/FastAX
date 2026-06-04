@@ -99,7 +99,7 @@ func TestHandler_AddKey_Success(t *testing.T) {
 
 	body := AddKeyRequest{
 		Provider:     "openai",
-		KeyEncrypted: "encrypted-data",
+		KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
 		KeyIV:        "iv-data",
 		Alias:        "my key",
 	}

@@ -111,3 +111,39 @@ func (h *Handler) SetKeyStatus(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "status updated"})
 }
+
+// GetUsage 获取 BYOK 用量统计
+// GET /api/byok/usage
+func (h *Handler) GetUsage(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	stats, err := h.svc.GetUsageStats(userID.(uint))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, stats)
+}
+
+// SetPreference 设置 BYOK 路由偏好
+// PUT /api/byok/preference
+func (h *Handler) SetPreference(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	var req struct {
+		Mode              string `json:"mode" binding:"required,oneof=byok_first platform_only byok_only"`
+		FallbackEnabled   *bool  `json:"fallback_enabled"`
+		MaxPlatformFeePct int    `json:"max_platform_fee_pct"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+
+	pref, err := h.svc.SetPreference(userID.(uint), req.Mode, req.FallbackEnabled, req.MaxPlatformFeePct)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, pref)
+}

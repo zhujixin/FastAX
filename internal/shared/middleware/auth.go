@@ -16,7 +16,10 @@ import (
 	"time"
 
 	"github.com/fastax/fastax-server/internal/shared/cache"
+	"github.com/fastax/fastax-server/internal/shared/constants"
+	"github.com/fastax/fastax-server/internal/shared/model"
 	"github.com/fastax/fastax-server/internal/shared/response"
+	"gorm.io/gorm"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -70,7 +73,7 @@ func AuthRequired(secret string, redis *cache.RedisClient) gin.HandlerFunc {
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("role")
-		if role != "admin" && role != "super_admin" {
+		if role != constants.RoleAdmin && role != constants.RoleSuperAdmin {
 			response.Error(c, http.StatusForbidden, response.CodePermissionDeny)
 			return
 		}
@@ -100,6 +103,46 @@ func extractToken(c *gin.Context) string {
 	return ""
 }
 
+// TokenAuthRequired validates API keys (product tokens) for proxy /v1 routes.
+// Accepts "Bearer <token_id>" or "Bearer sk-<token_id>" format.
+func TokenAuthRequired(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr := extractToken(c)
+		if tokenStr == "" {
+			response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "missing api key")
+			return
+		}
+
+		// Support both "<id>" and "sk-<id>" formats
+		tokenStr = strings.TrimPrefix(tokenStr, "sk-")
+		tokenID, err := strconv.ParseUint(tokenStr, 10, 64)
+		if err != nil {
+			response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "invalid api key format")
+			return
+		}
+
+		var token model.UserToken
+		if err := db.First(&token, tokenID).Error; err != nil {
+			response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "invalid api key")
+			return
+		}
+
+		if token.Status != 1 {
+			response.Error(c, http.StatusForbidden, response.CodeTokenExpired, "token disabled")
+			return
+		}
+
+		if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+			response.Error(c, http.StatusForbidden, response.CodeTokenExpired, "token expired")
+			return
+		}
+
+		c.Set("user_id", token.UserID)
+		c.Set("token_id", token.ID)
+		c.Next()
+	}
+}
+
 func GenerateAccessToken(userID uint, role, secret string, expiry time.Duration) (string, error) {
 	claims := Claims{
 		UserID: userID,
@@ -114,14 +157,14 @@ func GenerateAccessToken(userID uint, role, secret string, expiry time.Duration)
 	return token.SignedString([]byte(secret))
 }
 
-func GenerateRefreshToken(userID uint, secret string, expiry time.Duration) (string, error) {
+func GenerateRefreshToken(userID uint, refreshSecret string, expiry time.Duration) (string, error) {
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		Issuer:    "fastax-refresh",
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(fmt.Sprintf("%s-refresh", secret)))
+	return token.SignedString([]byte(refreshSecret))
 }
 
 func parseJWT(tokenStr, secret string) (*Claims, error) {
@@ -138,5 +181,11 @@ func parseJWT(tokenStr, secret string) (*Claims, error) {
 	if !ok || !token.Valid {
 		return nil, fmt.Errorf("invalid token claims")
 	}
+
+	// Validate issuer to prevent cross-issuer token acceptance
+	if claims.Issuer != "" && claims.Issuer != "fastax" && claims.Issuer != "fastax-refresh" {
+		return nil, fmt.Errorf("unexpected issuer: %s", claims.Issuer)
+	}
+
 	return claims, nil
 }

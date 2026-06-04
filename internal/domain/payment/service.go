@@ -84,14 +84,17 @@ type RefundResponse struct {
 	HandledAt  *time.Time `json:"handled_at,omitempty"`
 }
 
-func (s *Service) CreatePayment(req *CreatePaymentRequest) (*PaymentResponse, error) {
-	// Validate order exists and is pending
+func (s *Service) CreatePayment(req *CreatePaymentRequest, userID uint) (*PaymentResponse, error) {
+	// Validate order exists and belongs to the user
 	var order model.Order
 	if err := s.db.First(&order, req.OrderID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("order not found")
 		}
 		return nil, fmt.Errorf("query order: %w", err)
+	}
+	if order.UserID != userID {
+		return nil, errors.New("order does not belong to you")
 	}
 	if order.Status != "pending" {
 		return nil, fmt.Errorf("order is not in pending status, current: %s", order.Status)
@@ -255,7 +258,19 @@ func (s *Service) ReviewRefund(review *RefundReview, operatorID uint) error {
 	return nil
 }
 
-func (s *Service) GetPaymentByOrderID(orderID uint) (*PaymentResponse, error) {
+func (s *Service) GetPaymentByOrderID(orderID, userID uint) (*PaymentResponse, error) {
+	// Verify order ownership first to prevent IDOR
+	var order model.Order
+	if err := s.db.First(&order, orderID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("order not found")
+		}
+		return nil, fmt.Errorf("query order: %w", err)
+	}
+	if order.UserID != userID {
+		return nil, errors.New("payment not found") // Don't reveal existence
+	}
+
 	var payment model.Payment
 	if err := s.db.Where("order_id = ?", orderID).Order("created_at desc").First(&payment).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

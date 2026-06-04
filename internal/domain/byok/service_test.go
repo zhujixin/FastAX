@@ -23,7 +23,7 @@ func TestService_AddKey(t *testing.T) {
 	svc := NewService(db)
 
 	key, err := svc.AddKey(1, &AddKeyRequest{
-		Provider: "openai", KeyEncrypted: "sk-xxx", KeyIV: "iv-xxx", Alias: "My Key",
+		Provider: "openai", KeyEncrypted: "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=", KeyIV: "iv-xxx", Alias: "My Key",
 	})
 	if err != nil {
 		t.Fatalf("AddKey() error = %v", err)
@@ -40,9 +40,9 @@ func TestService_ListKeys(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "k1", KeyIV: "iv1"})
-	svc.AddKey(1, &AddKeyRequest{Provider: "anthropic", KeyEncrypted: "k2", KeyIV: "iv2"})
-	svc.AddKey(2, &AddKeyRequest{Provider: "openai", KeyEncrypted: "k3", KeyIV: "iv3"})
+	svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", KeyIV: "iv1"})
+	svc.AddKey(1, &AddKeyRequest{Provider: "anthropic", KeyEncrypted: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=", KeyIV: "iv2"})
+	svc.AddKey(2, &AddKeyRequest{Provider: "openai", KeyEncrypted: "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=", KeyIV: "iv3"})
 
 	keys, _ := svc.ListKeys(1)
 	if len(keys) != 2 {
@@ -54,7 +54,7 @@ func TestService_GetKey(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	created, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "k", KeyIV: "iv", Alias: "Test"})
+	created, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv", Alias: "Test"})
 
 	found, err := svc.GetKey(created.ID, 1)
 	if err != nil {
@@ -79,7 +79,7 @@ func TestService_SetKeyStatus(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	key, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "k", KeyIV: "iv"})
+	key, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv"})
 	svc.SetKeyStatus(key.ID, 1, 0)
 
 	keys, _ := svc.ListKeys(1)
@@ -92,7 +92,7 @@ func TestService_DeleteKey(t *testing.T) {
 	db := setupTestDB(t)
 	svc := NewService(db)
 
-	key, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "k", KeyIV: "iv"})
+	key, _ := svc.AddKey(1, &AddKeyRequest{Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv"})
 	err := svc.DeleteKey(key.ID, 1)
 	if err != nil {
 		t.Fatalf("DeleteKey() error = %v", err)
@@ -109,7 +109,7 @@ func TestService_FindKeyForModel(t *testing.T) {
 	svc := NewService(db)
 
 	svc.AddKey(1, &AddKeyRequest{
-		Provider: "openai", KeyEncrypted: "k", KeyIV: "iv",
+		Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv",
 		ModelWhitelist: "gpt-4,gpt-3.5-turbo",
 	})
 
@@ -127,7 +127,7 @@ func TestService_FindKeyForModel_NoWhitelist(t *testing.T) {
 	svc := NewService(db)
 
 	svc.AddKey(1, &AddKeyRequest{
-		Provider: "openai", KeyEncrypted: "k", KeyIV: "iv",
+		Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv",
 	})
 
 	key, err := svc.FindKeyForModel(1, "openai", "any-model")
@@ -144,7 +144,7 @@ func TestService_FindKeyForModel_NotInWhitelist(t *testing.T) {
 	svc := NewService(db)
 
 	svc.AddKey(1, &AddKeyRequest{
-		Provider: "openai", KeyEncrypted: "k", KeyIV: "iv",
+		Provider: "openai", KeyEncrypted: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", KeyIV: "iv",
 		ModelWhitelist: "gpt-4",
 	})
 

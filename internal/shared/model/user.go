@@ -52,7 +52,7 @@ type SubAccount struct {
 	ParentID     uint      `gorm:"index;not null"`
 	Email        string    `gorm:"size:128;not null"`
 	PasswordHash string    `gorm:"not null"`
-	TokenQuota   int64     `gorm:"default:0"`
+	TokenQuota   string    `gorm:"size:32;default:0"`
 	Permissions  string    `gorm:"type:text"`
 	Status       int       `gorm:"default:1"`
 	CreatedAt    time.Time

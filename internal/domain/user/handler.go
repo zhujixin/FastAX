@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fastax/fastax-server/internal/shared/constants"
 	"github.com/fastax/fastax-server/internal/shared/middleware"
 	"github.com/fastax/fastax-server/internal/shared/response"
 	"github.com/gin-gonic/gin"
@@ -276,17 +277,67 @@ func (h *Handler) SetUserLevel(c *gin.Context) {
 	response.Success(c, gin.H{"message": "level updated"})
 }
 
+// --- Admin Account Management ---
+
+// ListAdmins 管理员列表
+// GET /api/admin/system/admins
+func (h *Handler) ListAdmins(c *gin.Context) {
+	admins, err := h.svc.ListAdmins()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, admins)
+}
+
+// CreateAdmin 添加管理员
+// POST /api/admin/system/admins
+func (h *Handler) CreateAdmin(c *gin.Context) {
+	var req struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required,min=6"`
+		Email    string `json:"email" binding:"required,email"`
+		Role     string `json:"role"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	if req.Role == "" {
+		req.Role = constants.RoleAdmin
+	}
+	admin, err := h.svc.CreateAdmin(req.Username, req.Password, req.Email, req.Role)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	response.Success(c, admin)
+}
+
 // --- OAuth ---
 
 // GET /api/auth/oauth/:provider - OAuth redirect
+// Returns 501 if OAuth is not configured for this provider.
 func (h *Handler) OAuthRedirect(c *gin.Context) {
 	provider := c.Param("provider")
+	if !h.svc.IsOAuthConfigured(provider) {
+		response.Error(c, http.StatusNotImplemented, response.CodeServiceUnavail, "OAuth not configured for this provider")
+		return
+	}
 	callbackURL := c.Query("callback_url")
 	if callbackURL == "" {
-		callbackURL = fmt.Sprintf("%s/api/auth/oauth/callback", c.Request.Host)
+		// Use the request's own scheme+host, but only allow HTTPS in production
+		// or localhost. The OAuth provider validates the redirect_uri against
+		// the registered URI, so Host header spoofing only causes an auth failure,
+		// not a token leak. For defense-in-depth, we prefer explicit callback_url.
+		scheme := "https"
+		if c.Request.TLS == nil {
+			scheme = "http"
+		}
+		callbackURL = scheme + "://" + c.Request.Host + "/api/auth/oauth/callback"
 	}
 
-	redirectURL, err := h.svc.GetOAuthRedirectURL(provider, callbackURL)
+	redirectURL, err := h.svc.GetOAuthRedirectURL(provider, callbackURL, c.Request.Host)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
 		return

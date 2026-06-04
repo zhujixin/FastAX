@@ -129,7 +129,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	// API routes
@@ -398,9 +398,10 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 		}
 	}
 
-	// OpenAI-compatible relay routes
+	// OpenAI-compatible relay routes (authenticated via API key)
 	v1 := r.Group("/v1")
 	v1.Use(middleware.RateLimitIP(ipLimiter))
+	v1.Use(middleware.TokenAuthRequired(db))
 	{
 		v1.POST("/chat/completions", h.Proxy.ChatCompletions)
 		v1.POST("/messages", h.Proxy.ChatMessages) // Anthropic Messages API
@@ -414,5 +415,5 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, redis *cache.RedisClient, cfg *c
 }
 
 func placeholder(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "not implemented yet"})
+	c.JSON(http.StatusOK, gin.H{"message": "not implemented yet"})
 }

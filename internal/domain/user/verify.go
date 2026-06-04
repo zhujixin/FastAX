@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fastax/fastax-server/internal/shared/cache"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -37,7 +38,11 @@ func (s *VerifyService) GenerateCode(identifier string) (string, error) {
 		return "", fmt.Errorf("generate code: %w", err)
 	}
 	if s.cache == nil {
-		return code, nil // dev mode: no Redis, skip storing
+		// Only allow fixed code in test mode; in production this is a configuration error
+		if gin.Mode() == gin.TestMode {
+			return "000000", nil
+		}
+		return "", fmt.Errorf("verification service unavailable: Redis not connected")
 	}
 	key := cache.VerifyCodeKey(identifier)
 	if err := s.cache.Set(key, code, verifyCodeTTL); err != nil {
@@ -48,7 +53,11 @@ func (s *VerifyService) GenerateCode(identifier string) (string, error) {
 
 func (s *VerifyService) VerifyCode(identifier, code string) (bool, error) {
 	if s.cache == nil {
-		return true, nil // dev mode: no Redis, accept any code
+		// Only accept test code in Gin test mode (unit tests)
+		if gin.Mode() == gin.TestMode && code == "000000" {
+			return true, nil
+		}
+		return false, fmt.Errorf("verification unavailable: Redis not connected")
 	}
 	key := cache.VerifyCodeKey(identifier)
 	stored, err := s.cache.Get(key)

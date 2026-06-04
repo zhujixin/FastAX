@@ -8,9 +8,14 @@ import (
 
 	"github.com/fastax/fastax-server/internal/shared/config"
 	"github.com/fastax/fastax-server/internal/shared/model"
+	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
+
+func init() {
+	gin.SetMode(gin.TestMode)
+}
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -27,10 +32,12 @@ func setupTestDB(t *testing.T) *gorm.DB {
 func setupTestService(t *testing.T) *Service {
 	t.Helper()
 	db := setupTestDB(t)
-	cfg := &config.JWTConfig{
-		Secret:        "test-secret",
-		AccessExpiry:  time.Hour,
-		RefreshExpiry: 7 * 24 * time.Hour,
+	cfg := &config.Config{
+		JWT: config.JWTConfig{
+			Secret:        "test-secret",
+			AccessExpiry:  time.Hour,
+			RefreshExpiry: 7 * 24 * time.Hour,
+		},
 	}
 	return NewService(db, nil, cfg)
 }
@@ -42,7 +49,7 @@ func registerUser(t *testing.T, svc *Service, username, email, password string) 
 		Username:   username,
 		Password:   password,
 		Email:      email,
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -57,7 +64,7 @@ func registerUserWithPhone(t *testing.T, svc *Service, username, email, phone, p
 		Password:   password,
 		Email:      email,
 		Phone:      phone,
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -72,7 +79,7 @@ func TestService_Register_Success(t *testing.T) {
 		Username:   "testuser",
 		Password:   "pass123",
 		Email:      "test@test.com",
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -108,7 +115,7 @@ func TestService_Register_DefaultLanguage(t *testing.T) {
 		Username:   "testuser",
 		Password:   "pass123",
 		Email:      "lang@test.com",
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 		Language:   "en",
 	})
 	if err != nil {
@@ -128,7 +135,7 @@ func TestService_Register_DuplicateEmail(t *testing.T) {
 		Username:   "user2",
 		Password:   "pass123",
 		Email:      "dup@test.com",
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 	})
 	if err == nil {
 		t.Fatal("Register() expected error for duplicate email")
@@ -164,7 +171,7 @@ func TestService_Login_ByPhone(t *testing.T) {
 		Username:   "phoneuser",
 		Password:   "pass123",
 		Phone:      "13800138000",
-		VerifyCode: "123456",
+		VerifyCode: "000000",
 	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -383,7 +390,7 @@ func TestService_ResetPassword_Success(t *testing.T) {
 	// In dev mode (nil cache), VerifyCode always returns true
 	err := svc.ResetPassword(&ResetPasswordRequest{
 		Email:       "resetpw@test.com",
-		Code:        "123456",
+		Code:        "000000",
 		NewPassword: "newpass123",
 	})
 	if err != nil {
@@ -417,7 +424,7 @@ func TestService_ResetPassword_UserNotFound(t *testing.T) {
 
 	err := svc.ResetPassword(&ResetPasswordRequest{
 		Email:       "nonexistent@test.com",
-		Code:        "123456",
+		Code:        "000000",
 		NewPassword: "newpass123",
 	})
 	if err == nil {

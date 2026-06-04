@@ -31,6 +31,9 @@ const AdminDashboard = lazy(() => import("@/admin/pages/dashboard/DashboardPage"
 const AdminUsers = lazy(() => import("@/admin/pages/users/UserListPage"));
 const AdminTokens = lazy(() => import("@/admin/pages/tokens/TokenManagePage"));
 const AdminChannels = lazy(() => import("@/admin/pages/tokens/ChannelManagePage"));
+const AdminSuppliers = lazy(() => import("@/admin/pages/tokens/SupplierManagePage"));
+const AdminReports = lazy(() => import("@/admin/pages/orders/ReportPage"));
+const AdminAdmins = lazy(() => import("@/admin/pages/system/AdminManagePage"));
 const AdminOrders = lazy(() => import("@/admin/pages/orders/OrderManagePage"));
 const AdminRiskEvents = lazy(() => import("@/admin/pages/risk/RiskEventsPage"));
 const AdminRiskRules = lazy(() => import("@/admin/pages/risk/Rules/RuleListPage"));
@@ -44,6 +47,7 @@ const AdminGuardrailRules = lazy(() => import("@/admin/pages/guardrails/Guardrai
 const AdminGuardrailLogs = lazy(() => import("@/admin/pages/guardrails/GuardrailLogsPage"));
 const AdminEnterprise = lazy(() => import("@/admin/pages/enterprise/EnterprisePage"));
 const AdminCost = lazy(() => import("@/admin/pages/cost/CostPage"));
+const AdminSystem = lazy(() => import("@/admin/pages/system/SystemPage"));
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
@@ -88,7 +92,9 @@ const routes = [
       { path: "users", element: <Lazy><AdminUsers /></Lazy> },
       { path: "tokens", element: <Lazy><AdminTokens /></Lazy> },
       { path: "channels", element: <Lazy><AdminChannels /></Lazy> },
+{ path: "suppliers", element: <Lazy><AdminSuppliers /></Lazy> },
       { path: "orders", element: <Lazy><AdminOrders /></Lazy> },
+{ path: "reports", element: <Lazy><AdminReports /></Lazy> },
       { path: "risk", element: <Lazy><AdminRiskEvents /></Lazy> },
       { path: "risk/rules", element: <Lazy><AdminRiskRules /></Lazy> },
       { path: "risk/blacklist", element: <Lazy><AdminBlacklist /></Lazy> },
@@ -101,6 +107,8 @@ const routes = [
       { path: "guardrails/logs", element: <Lazy><AdminGuardrailLogs /></Lazy> },
       { path: "enterprise", element: <Lazy><AdminEnterprise /></Lazy> },
       { path: "cost", element: <Lazy><AdminCost /></Lazy> },
+{ path: "system", element: <Lazy><AdminSystem /></Lazy> },
+{ path: "system/admins", element: <Lazy><AdminAdmins /></Lazy> },
     ],
   },
 ];

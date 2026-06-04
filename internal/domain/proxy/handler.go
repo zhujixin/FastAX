@@ -12,8 +12,10 @@ package proxy
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fastax/fastax-server/internal/domain/proxy/relay"
@@ -55,15 +57,20 @@ func (h *Handler) ChatCompletions(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
 	if req.Stream {
-		h.handleStream(c, ctx, userID.(uint), &req)
+		h.handleStream(c, ctx, userID, &req)
 		return
 	}
 
-	h.handleNonStream(c, ctx, userID.(uint), &req)
+	h.handleNonStream(c, ctx, userID, &req)
 }
 
 // ChatMessages handles /v1/messages (Anthropic Messages API)
@@ -127,15 +134,20 @@ func (h *Handler) ChatMessages(c *gin.Context) {
 	// Also extract simplified messages for routing/fallback
 	req.Messages = extractAnthropicMessages(anthropicReq.Messages)
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
 	if req.Stream {
-		h.handleStream(c, ctx, userID.(uint), req)
+		h.handleStream(c, ctx, userID, req)
 		return
 	}
 
-	h.handleNonStream(c, ctx, userID.(uint), req)
+	h.handleNonStream(c, ctx, userID, req)
 }
 
 // handleNonStream handles non-streaming relay requests
@@ -211,10 +223,15 @@ func (h *Handler) ImageGenerations(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
-	resp, err := h.svc.ImageRelay(ctx, userID.(uint), &req)
+	resp, err := h.svc.ImageRelay(ctx, userID, &req)
 	if err != nil {
 		response.Error(c, http.StatusBadGateway, response.CodeServiceUnavail, err.Error())
 		return
@@ -244,10 +261,15 @@ func (h *Handler) AudioSpeech(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
-	resp, err := h.svc.AudioRelay(ctx, userID.(uint), &req)
+	resp, err := h.svc.AudioRelay(ctx, userID, &req)
 	if err != nil {
 		response.Error(c, http.StatusBadGateway, response.CodeServiceUnavail, err.Error())
 		return
@@ -255,6 +277,72 @@ func (h *Handler) AudioSpeech(c *gin.Context) {
 
 	// Audio response may be binary (mp3/opus/etc), pass content-type from upstream
 	c.Data(resp.StatusCode, "application/octet-stream", resp.Body)
+}
+
+// allowedAudioExtensions defines the whitelist of allowed audio file extensions.
+var allowedAudioExtensions = map[string]bool{
+	".mp3": true, ".mp4": true, ".mpeg": true, ".mpga": true,
+	".m4a": true, ".wav": true, ".webm": true, ".flac": true,
+	".ogg": true, ".oga": true, ".opus": true, ".aac": true,
+}
+
+// maxAudioFileSize is the maximum allowed audio file size (25 MB for Whisper API limit).
+const maxAudioFileSize = 25 * 1024 * 1024
+
+// AudioTranscriptions handles POST /v1/audio/transcriptions (STT)
+// Accepts multipart/form-data with audio file + model parameter
+func (h *Handler) AudioTranscriptions(c *gin.Context) {
+	model := c.PostForm("model")
+	if model == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "model is required")
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "audio file is required")
+		return
+	}
+	defer file.Close()
+
+	// Validate file extension whitelist
+	if dot := strings.LastIndex(header.Filename, "."); dot >= 0 {
+		ext := strings.ToLower(header.Filename[dot:])
+		if !allowedAudioExtensions[ext] {
+			response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "unsupported audio format: "+ext)
+			return
+		}
+	}
+
+	// Validate MIME type if provided
+	if ct := header.Header.Get("Content-Type"); ct != "" {
+		if !strings.HasPrefix(ct, "audio/") && !strings.HasPrefix(ct, "video/") && ct != "application/octet-stream" {
+			response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "file must be an audio format")
+			return
+		}
+	}
+
+	// Validate file size
+	if header.Size > maxAudioFileSize {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, fmt.Sprintf("audio file too large, max %d MB", maxAudioFileSize/(1024*1024)))
+		return
+	}
+
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
+	ctx := c.Request.Context()
+
+	resp, err := h.svc.TranscribeAudio(ctx, userID, model, file, header.Filename)
+	if err != nil {
+		response.Error(c, http.StatusBadGateway, response.CodeServiceUnavail, err.Error())
+		return
+	}
+
+	c.Data(resp.StatusCode, "application/json", resp.Body)
 }
 
 // ListModels handles GET /v1/models
@@ -279,7 +367,7 @@ func (h *Handler) ListModels(c *gin.Context) {
 		}
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"object": "list",
 		"data":   data,
 	})
@@ -306,10 +394,15 @@ func (h *Handler) Rerank(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
-	resp, err := h.svc.Rerank(ctx, userID.(uint), &req)
+	resp, err := h.svc.Rerank(ctx, userID, &req)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
 		return
@@ -334,10 +427,15 @@ func (h *Handler) VideoGenerations(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, response.CodeTokenExpired, "authentication required")
+		return
+	}
+	userID := userIDVal.(uint)
 	ctx := c.Request.Context()
 
-	resp, err := h.svc.VideoRelay(ctx, userID.(uint), &req)
+	resp, err := h.svc.VideoRelay(ctx, userID, &req)
 	if err != nil {
 		response.Error(c, http.StatusBadGateway, response.CodeServiceUnavail, err.Error())
 		return

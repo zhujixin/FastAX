@@ -40,7 +40,8 @@ func TestGenerateAccessToken(t *testing.T) {
 
 func TestGenerateRefreshToken(t *testing.T) {
 	secret := "test-secret"
-	token, err := GenerateRefreshToken(42, secret, time.Hour)
+	refreshSecret := secret + "-refresh"
+	token, err := GenerateRefreshToken(42, refreshSecret, time.Hour)
 	if err != nil {
 		t.Fatalf("GenerateRefreshToken() error = %v", err)
 	}
@@ -48,8 +49,8 @@ func TestGenerateRefreshToken(t *testing.T) {
 		t.Fatal("GenerateRefreshToken() returned empty token")
 	}
 
-	// Refresh token uses secret+"-refresh" for signing
-	claims, err := parseJWT(token, secret+"-refresh")
+	// Refresh token uses the refresh secret for signing
+	claims, err := parseJWT(token, refreshSecret)
 	if err != nil {
 		t.Fatalf("parseJWT() error = %v", err)
 	}
@@ -58,7 +59,7 @@ func TestGenerateRefreshToken(t *testing.T) {
 		t.Errorf("Claims.Issuer = %v, want fastax-refresh", claims.Issuer)
 	}
 
-	// Should fail with original secret
+	// Should fail with original access secret
 	_, err = parseJWT(token, secret)
 	if err == nil {
 		t.Error("parseJWT() expected error with wrong secret, got nil")

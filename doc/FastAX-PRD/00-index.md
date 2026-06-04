@@ -3,7 +3,7 @@
 **产品名称**：FastAX Token 代理平台  
 **文档状态**：定稿（市场对标增强版）  
 **创建日期**：2026-05-28  
-**版本号**：v3.0  
+**版本号**：v3.1  
 
 > **本文档已按 domain 拆分**，每个文件对应一个 Go package，方便 Claude Code 按需加载。
 > 详见下方 [文件索引](#文件索引)。
@@ -36,6 +36,9 @@
 | 19 | [19-glossary.md](19-glossary.md) | — | 术语表 | 51 |
 | 20 | [20-requirements-registry.md](20-requirements-registry.md) | — | 需求注册表（完整 ID 清单） | 433 |
 | 21 | [21-market-analysis.md](21-market-analysis.md) | — | 市场竞争对标分析 | 49 |
+| 22 | [22-semantic-cache.md](22-semantic-cache.md) | `domain/cache` | 语义缓存引擎（精确匹配+语义向量+灰度区验证） | 新增 v3.1 |
+| 23 | [23-otel-observability.md](23-otel-observability.md) | `domain/observability` | OpenTelemetry 全链路可观测性（Trace/Span/GenAI semconv/Prometheus） | 新增 v3.1 |
+| 24 | [24-mcp-gateway.md](24-mcp-gateway.md) | `domain/mcp` | MCP 网关（统一端点+传输桥接+工具路由+授权+审计） | 新增 v3.1 |
 
 ---
 
@@ -54,6 +57,7 @@
 | v2.3 | 2026-05-27 | — | 新增 Token 厂家入驻平台自主销售需求，新增第 6.2.6 节 |
 | v2.4 | 2026-05-27 | — | 新增转发逻辑设计（参考 CC Switch），新增第 6.2.7 节 |
 | v3.0 | 2026-05-28 | — | 市场对标增强版：新增 8 大模块（多协议原生支持、多模态、安全护栏、BYOK、插件系统、成本优化、企业功能、模型市场），对标 OpenRouter/Portkey/LiteLLM/New-API 等主流平台 |
+| v3.1 | 2026-06-04 | — | 行业趋势增强版：新增 3 大模块（语义缓存引擎、OpenTelemetry 可观测性、MCP 网关）+ 条件路由/流式护栏/上下文压缩增强，基于 2025-2026 行业最新趋势调研 |
 
 ---
 
@@ -71,18 +75,21 @@
 
 | 需求 ID | 用途 | 对应 PDD 章节 | 对应 module/package |
 |---------|------|-------------|-------------------|
-| ROUTE-01~17 | 路由/转发/熔断 | PDD §5.2.1-§5.2.5 | domain/proxy |
+| ROUTE-01~22 | 路由/转发/熔断/条件路由 | PDD §5.2.1-§5.2.5 | domain/proxy |
 | SUP-01~19 | 供应商入驻/适配器 | PDD §5.2.6 | domain/vendor |
 | F-TKN/F-PXY/F-TUS | Token 商品/代理/用户 | PDD §5.2.1-§5.2.5 | domain/proxy, domain/token |
 | LANG-01~06 | 多语言 i18n | PDD §5.7 | shared/i18n |
 | PROTO-01~10 | 多协议原生支持 | PDD §5.9 | domain/proxy + relay/adaptor/ |
 | MEDIA-01~07 | 多模态支持 | PDD §5.10 | domain/proxy |
-| GRDL-01~09 | 安全护栏 | PDD §5.11 | domain/guardrail |
+| GRDL-01~14 | 安全护栏（含流式护栏+DLP） | PDD §5.11 | domain/guardrail |
 | BYOK-01~07 | 自带 Key | PDD §5.12 | domain/byok |
 | PLUG-01~07 | 插件系统 | PDD §5.13 | domain/plugin |
-| COST-01~08 | 成本优化 | PDD §5.14 | domain/cost |
+| COST-01~11 | 成本优化（含上下文压缩+碳感知路由） | PDD §5.14 | domain/cost |
 | ENT-01~08 | 企业功能 | PDD §5.15 | domain/enterprise |
 | MKT-01~06 | 模型市场 | PDD §5.16 | domain/market |
+| CACHE-01~07 | 语义缓存引擎 | PDD §5.17 | domain/cache |
+| OBSV-01~06 | OpenTelemetry 可观测性 | PDD §5.18 | domain/observability |
+| MCP-01~06 | MCP 网关 | PDD §5.19 | domain/mcp |
 | F-ORD/F-PAY | 订单/支付 | PDD §5.3 | domain/order, domain/payment |
 | F-RISK/F-SEC | 风控/安全 | PDD §5.4, §8 | domain/risk |
 

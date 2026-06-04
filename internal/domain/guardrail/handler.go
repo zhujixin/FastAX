@@ -159,3 +159,25 @@ func (h *Handler) Detect(c *gin.Context) {
 	}
 	response.Success(c, result)
 }
+
+// UpdateConfig 更新护栏全局配置
+// PUT /api/admin/guardrails/config
+func (h *Handler) UpdateConfig(c *gin.Context) {
+	var req struct {
+		Mode    string `json:"mode" binding:"required,oneof=enforce monitor log"`
+		Enabled *bool  `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
+		return
+	}
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+	if err := h.svc.UpdateGlobalConfig(req.Mode, enabled); err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"mode": req.Mode, "enabled": enabled})
+}

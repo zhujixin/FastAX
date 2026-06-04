@@ -22,6 +22,7 @@ type Order struct {
 	Currency       string    `gorm:"default:CNY;size:8"`
 	PaymentMethod  string    `gorm:"size:32"`
 	Status         string    `gorm:"size:32;not null;index"`
+	VendorID       *uint     `gorm:"index;default:null"` // FK→supplier_vendor
 	Remark         string    `gorm:"type:text"`
 	PaidAt         *time.Time
 	CreatedAt      time.Time

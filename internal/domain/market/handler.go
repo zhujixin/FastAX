@@ -106,3 +106,19 @@ func (h *Handler) RecommendModels(c *gin.Context) {
 	}
 	response.Success(c, result)
 }
+
+// GetModelVariant 获取模型变体详情
+// GET /api/models/variants/:variant
+func (h *Handler) GetModelVariant(c *gin.Context) {
+	variant := c.Param("variant")
+	if variant == "" {
+		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, "variant is required")
+		return
+	}
+	result, err := h.svc.FindVariant(variant)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, response.CodeNotFound, "variant not found")
+		return
+	}
+	response.Success(c, result)
+}

@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/fastax/fastax-server/internal/domain/payment"
+	"github.com/fastax/fastax-server/internal/shared/constants"
 	"github.com/fastax/fastax-server/internal/shared/response"
 	"github.com/gin-gonic/gin"
 )
@@ -59,6 +60,15 @@ func (h *Handler) Get(c *gin.Context) {
 		response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
 		return
 	}
+
+	// Ownership check: only admins can view other users' orders
+	role, _ := c.Get("role")
+	userID, _ := c.Get("user_id")
+	if role != constants.RoleAdmin && resp.UserID != userID.(uint) {
+		response.Error(c, http.StatusForbidden, response.CodePermissionDeny, "not your order")
+		return
+	}
+
 	response.Success(c, resp)
 }
 
@@ -82,7 +92,7 @@ func (h *Handler) List(c *gin.Context) {
 	// Non-admin users can only see their own orders
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	if role != "admin" {
+	if role != constants.RoleAdmin {
 		query.UserID = userID.(uint)
 	}
 
@@ -110,7 +120,7 @@ func (h *Handler) Cancel(c *gin.Context) {
 
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	if role != "admin" && resp.UserID != userID.(uint) {
+	if role != constants.RoleAdmin && resp.UserID != userID.(uint) {
 		response.Error(c, http.StatusForbidden, response.CodePermissionDeny, "not your order")
 		return
 	}
@@ -142,7 +152,7 @@ func (h *Handler) RequestRefund(c *gin.Context) {
 
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	if role != "admin" && orderResp.UserID != userID.(uint) {
+	if role != constants.RoleAdmin && orderResp.UserID != userID.(uint) {
 		response.Error(c, http.StatusForbidden, response.CodePermissionDeny, "not your order")
 		return
 	}

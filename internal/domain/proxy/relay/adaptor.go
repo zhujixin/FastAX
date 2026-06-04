@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+const defaultAdaptorTimeout = 120 * time.Second
+
 // SupplierMeta 供应商元数据，传递渠道、认证、模型映射等上下文
 type SupplierMeta struct {
 	SupplierID   uint
@@ -161,6 +163,9 @@ const (
 	APITypeOpenAI    APIType = "openai"
 	APITypeAnthropic APIType = "anthropic"
 	APITypeGemini    APIType = "gemini"
+	APITypeDeepSeek  APIType = "deepseek"
+	APITypeQwen      APIType = "qwen"
+	APITypeGLM       APIType = "glm"
 )
 
 // GetAdaptor returns the appropriate adaptor for the given API type
@@ -172,6 +177,12 @@ func GetAdaptor(apiType APIType) Adaptor {
 		return &AnthropicAdaptor{}
 	case APITypeGemini:
 		return &GeminiAdaptor{}
+	case APITypeDeepSeek:
+		return &DeepSeekAdaptor{}
+	case APITypeQwen:
+		return &QwenAdaptor{}
+	case APITypeGLM:
+		return &GLMAdaptor{}
 	default:
 		return &OpenAIAdaptor{} // Default to OpenAI-compatible
 	}
@@ -221,7 +232,7 @@ func (a *OpenAIAdaptor) DoRequest(ctx context.Context, meta *SupplierMeta, body 
 	if err := a.SetupRequestHeader(httpReq, meta); err != nil {
 		return nil, fmt.Errorf("setup header: %w", err)
 	}
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := &http.Client{Timeout: defaultAdaptorTimeout}
 	return client.Do(httpReq)
 }
 
@@ -352,7 +363,7 @@ func (a *AnthropicAdaptor) DoRequest(ctx context.Context, meta *SupplierMeta, bo
 	if err := a.SetupRequestHeader(httpReq, meta); err != nil {
 		return nil, fmt.Errorf("setup header: %w", err)
 	}
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := &http.Client{Timeout: defaultAdaptorTimeout}
 	return client.Do(httpReq)
 }
 
@@ -483,7 +494,7 @@ func (a *GeminiAdaptor) DoRequest(ctx context.Context, meta *SupplierMeta, body 
 	if err := a.SetupRequestHeader(httpReq, meta); err != nil {
 		return nil, fmt.Errorf("setup header: %w", err)
 	}
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := &http.Client{Timeout: defaultAdaptorTimeout}
 	return client.Do(httpReq)
 }
 

@@ -98,6 +98,9 @@ cd web && npm test       # 测试
 | COST- | `domain/cost` | 成本优化 |
 | ENT- | `domain/enterprise` | 企业功能 |
 | MKT- | `domain/market` | 模型市场 |
+| CACHE- | `domain/cache` | 语义缓存引擎（精确+语义+流式） |
+| OBSV- | `domain/observability` | OpenTelemetry 全链路可观测性 |
+| MCP- | `domain/mcp` | MCP 网关 |
 
 ---
 

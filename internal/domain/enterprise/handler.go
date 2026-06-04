@@ -120,7 +120,7 @@ func (h *Handler) UpdateQuota(c *gin.Context) {
 	}
 
 	var body struct {
-		TokenQuota *int64 `json:"token_quota" binding:"required"`
+		TokenQuota *string `json:"token_quota" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
@@ -165,7 +165,8 @@ func (h *Handler) GetSubAccountUsage(c *gin.Context) {
 
 	period := c.DefaultQuery("period", "all")
 
-	stats, err := h.svc.GetSubAccountUsage(uint(id), period)
+	parentID, _ := c.Get("user_id")
+	stats, err := h.svc.GetSubAccountUsage(uint(id), parentID.(uint), period)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
 		return

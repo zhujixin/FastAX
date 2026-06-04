@@ -15,6 +15,8 @@ type CallLog struct {
 	SubAccountID     uint      `gorm:"default:0"`
 	ProductID        uint      `gorm:"index"`
 	SupplierID       uint      `gorm:"index:idx_supplier_created"`
+	VendorID         *uint     `gorm:"index;default:null"` // FK→supplier_vendor
+	RouteDecision    string    `gorm:"size:256"`           // 路由决策信息 (ROUTE-11)
 	RequestPath      string    `gorm:"size:128;not null"`
 	RequestModel     string    `gorm:"size:64"`
 	TokensPrompt     int       `gorm:"default:0"`

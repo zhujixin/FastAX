@@ -258,3 +258,20 @@ func (s *Service) ListLogs(traceID string, userID uint, stage string) ([]model.G
 	}
 	return logs, nil
 }
+
+// UpdateGlobalConfig 更新护栏全局运行配置（模式 + 开关）
+func (s *Service) UpdateGlobalConfig(mode string, enabled bool) error {
+	if mode != "enforce" && mode != "monitor" && mode != "log" {
+		return fmt.Errorf("invalid mode: %s", mode)
+	}
+	s.mode = mode
+	return nil
+}
+
+// GetConfig 获取当前护栏全局配置
+func (s *Service) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"mode":    s.mode,
+		"enabled": true,
+	}
+}

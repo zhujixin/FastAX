@@ -453,7 +453,11 @@ func timePtr(t time.Time) *time.Time {
 
 func generateOrderNo() string {
 	b := make([]byte, 8)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// On Linux, crypto/rand.Read almost never fails. If it does,
+		// fall back to a time-based suffix to avoid collisions.
+		return fmt.Sprintf("ORD%d", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("ORD%s", hex.EncodeToString(b))
 }
 

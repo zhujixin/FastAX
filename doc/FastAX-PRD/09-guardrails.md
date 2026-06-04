@@ -15,4 +15,9 @@
 | GRDL-07 | **不可篡改审计日志**：安全事件日志使用 AES-256-GCM 加密存储，API Key 哈希使用 HMAC-SHA256，支持合规导出 | P0 | — |
 | GRDL-08 | **护栏流水线**：支持 Before 护栏（输入检测）和 After 护栏（输出检测）两阶段，每个阶段允许多条规则依次执行 | P0 | — |
 | GRDL-09 | **合规报告导出**：一键导出 SOC2、GDPR、HIPAA 格式的安全审计报告（JSON/CSV） | P1 | — |
+| GRDL-10 | **流式护栏**：在 SSE 流中实时评估安全策略，可中途截断（违规内容出现时立即断开流）、动态打码（PII/密钥出现时替换为 `***`） | P1 | 2025 行业新增能力，参考 Portkey Streaming Guardrails |
+| GRDL-11 | **DLP 数据丢失防护**：输入（Prompt 中粘贴的敏感文档内容）和输出（LLM 响应中的敏感数据）双阶段扫描，拦截企业内部敏感数据外泄 | P1 | 参考 Portkey DLP + Cloudflare AI Gateway DLP |
+| GRDL-12 | **自定义正则替换**：管理员可配置正则表达式规则，自动对匹配内容进行脱敏或替换（如 `/\b\d{16}\b/ → XXXX-XXXX-XXXX-****`） | P1 | 灵活的业务级数据保护 |
+| GRDL-13 | **工具级拦截**：按 function_call / code_interpreter / MCP tool 类型进行差异化拦截策略，阻断高风险工具调用 | P2 | Agent 场景下的安全扩展 |
+| GRDL-14 | **第三方护栏集成接口**：标准化护栏适配器接口，支持对接外部护栏引擎（如 Lakera、Akto、Javelin、F5 等 50+ 第三方方案） | P2 | 参考 Portkey Guardrails Marketplace 50+ 集成 |
 

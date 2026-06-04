@@ -20,49 +20,58 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"mime/multipart"
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/fastax/fastax-server/internal/domain/plugin"
 	"github.com/fastax/fastax-server/internal/domain/proxy/relay"
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"gorm.io/gorm"
+
+	fastaxcrypto "github.com/fastax/fastax-server/internal/shared/crypto"
 )
 
 // Service 代理服务结构体
 type Service struct {
-	db            *gorm.DB
-	router        *Router
-	healthChecker *HealthChecker
-	breakers      map[uint]*CircuitBreaker // channelID → circuit breaker
-	client        *http.Client
-	pluginManager *plugin.PluginManager
+	db             *gorm.DB
+	router         *Router
+	healthChecker  *HealthChecker
+	breakers       map[uint]*CircuitBreaker // channelID → circuit breaker
+	client         *http.Client
+	pluginManager  *plugin.PluginManager
+	billing        *BillingManager
+	encryptKey     []byte // AES-256 key for decrypting stored API keys
+	audioSemaphore chan struct{} // Limits concurrent audio transcription uploads (max 5)
 }
 
 // NewService 创建代理服务实例
-func NewService(db *gorm.DB) *Service {
+func NewService(db *gorm.DB, encryptKey []byte) *Service {
 	router := NewRouter(db)
 
 	// Create health checker and wire it to the router
-	hc := NewHealthChecker(db, 5*time.Minute)
+	hc := NewHealthChecker(db, DefaultHealthCheckInterval)
 	router.SetHealthChecker(hc)
 
 	svc := &Service{
-		db:            db,
-		router:        router,
-		healthChecker: hc,
-		breakers:      make(map[uint]*CircuitBreaker),
+		db:             db,
+		router:         router,
+		healthChecker:  hc,
+		breakers:       make(map[uint]*CircuitBreaker),
+		billing:        NewBillingManager(db),
+		encryptKey:     encryptKey,
+		audioSemaphore: make(chan struct{}, MaxConcurrentAudioUploads),
 		client: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: DefaultProxyHTTPTimeout,
 		},
 	}
 	svc.router.LoadChannels()
 
 	// Start background services
 	hc.Start()                        // Health checks every 5 min
-	router.StartAutoRefresh(60 * time.Second) // Channel cache refresh every 60s
+	router.StartAutoRefresh(DefaultChannelCacheRefresh)
 
 	return svc
 }
@@ -71,6 +80,7 @@ func NewService(db *gorm.DB) *Service {
 func (s *Service) Stop() {
 	s.healthChecker.Stop()
 	s.router.Stop()
+	s.billing.Flush()
 }
 
 // SetPluginManager injects the plugin manager into the proxy service.
@@ -117,13 +127,20 @@ func (s *Service) Relay(ctx context.Context, userID uint, req *RelayRequest) (*R
 		_ = s.pluginManager.ExecuteRequest(ctx, reqCtx)
 	}
 
+	// Pre-consume billing: estimate and freeze quota
+	preAmount, _ := s.billing.PreConsume(userID, req.Model, req.Messages)
+
 	disabled := s.collectDisabledChannels()
-	maxRetries := 3
+	maxRetries := DefaultMaxRetries
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
 		channel, err := s.router.SelectChannel("", req.Model, disabled)
 		if err != nil {
+			// Refund pre-consumed on total failure
+			if i == 0 {
+				s.billing.PostConsume(userID, preAmount, 0)
+			}
 			return nil, fmt.Errorf("no available channel: %w", err)
 		}
 
@@ -137,6 +154,14 @@ func (s *Service) Relay(ctx context.Context, userID uint, req *RelayRequest) (*R
 
 		s.recordSuccess(channel.ChannelID)
 
+		// Post-consume billing: deduct actual usage
+		actualTokens := 0
+		if resp.Resp != nil {
+			actualTokens = resp.Resp.Usage.TotalTokens
+		}
+		s.billing.PostConsume(userID, preAmount, actualTokens)
+		s.billing.RecordUsage(userID, 0, channel.ChannelID, req.Model, preAmount, actualTokens)
+
 		// Execute response plugins after successful forwarding (best-effort)
 		if s.pluginManager != nil {
 			respCtx := &plugin.ResponseContext{
@@ -149,6 +174,8 @@ func (s *Service) Relay(ctx context.Context, userID uint, req *RelayRequest) (*R
 		return resp, nil
 	}
 
+	// All retries exhausted: refund pre-consumed
+	s.billing.PostConsume(userID, preAmount, 0)
 	return nil, fmt.Errorf("all retries exhausted: %w", lastErr)
 }
 
@@ -163,13 +190,19 @@ func (s *Service) RelayStream(ctx context.Context, userID uint, req *RelayReques
 		_ = s.pluginManager.ExecuteRequest(ctx, reqCtx)
 	}
 
+	// Pre-consume billing for streaming
+	preAmount, _ := s.billing.PreConsume(userID, req.Model, req.Messages)
+
 	disabled := s.collectDisabledChannels()
-	maxRetries := 3
+	maxRetries := DefaultMaxRetries
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
 		channel, err := s.router.SelectChannel("", req.Model, disabled)
 		if err != nil {
+			if i == 0 {
+				s.billing.PostConsume(userID, preAmount, 0)
+			}
 			return nil, fmt.Errorf("no available channel: %w", err)
 		}
 
@@ -183,12 +216,22 @@ func (s *Service) RelayStream(ctx context.Context, userID uint, req *RelayReques
 
 		s.recordSuccess(channel.ChannelID)
 
-		// Note: response plugins are NOT called for streaming responses
-		// because the response body is consumed by the caller via SSE.
+		// Post-consume for streaming: estimate based on content length
+		// Streaming responses can't be measured precisely, so we use a
+		// proportional estimate: preAmount * 0.8 (stream responses are
+		// typically shorter than the prompt), minimum 100 tokens.
+		streamEstimate := parseAmount(preAmount) * StreamEstimateMultiplier
+		if streamEstimate < MinStreamTokenEstimate {
+			streamEstimate = MinStreamTokenEstimate
+		}
+		estTokens := int(streamEstimate)
+		s.billing.PostConsume(userID, preAmount, estTokens)
+		s.billing.RecordUsage(userID, 0, channel.ChannelID, req.Model, preAmount, estTokens)
 
 		return resp, nil
 	}
 
+	s.billing.PostConsume(userID, preAmount, 0)
 	return nil, fmt.Errorf("all retries exhausted: %w", lastErr)
 }
 
@@ -316,7 +359,7 @@ func (s *Service) prepareRelay(channel *ChannelEntry, req *RelayRequest) (*model
 		SupplierID: supplier.ID,
 		ChannelID:  channel.ChannelID,
 		APIBaseURL: supplier.APIBaseURL,
-		APIKey:     supplier.APIKeyEncrypted,
+		APIKey:     s.decryptAPIKey(supplier.APIKeyEncrypted),
 		APIType:    getAPIType(&supplier),
 		Model:      req.Model,
 	}
@@ -338,7 +381,7 @@ func (s *Service) collectDisabledChannels() map[uint]bool {
 func (s *Service) recordFailure(channelID uint) {
 	cb, ok := s.breakers[channelID]
 	if !ok {
-		cb = NewCircuitBreaker(5, 3, 5*time.Minute)
+		cb = NewCircuitBreaker(DefaultCBFailureThreshold, DefaultCBSuccessThreshold, DefaultCBTimeout)
 		s.breakers[channelID] = cb
 	}
 	cb.RecordFailure()
@@ -352,6 +395,22 @@ func (s *Service) recordSuccess(channelID uint) {
 	cb.RecordSuccess()
 }
 
+// decryptAPIKey decrypts a stored API key if an encryption key is configured.
+// If encryption key is not set (empty), returns the value as-is for backward compatibility (plaintext storage).
+// If decryption fails (wrong key, corrupted data), logs a warning and returns empty string
+// to avoid sending ciphertext as an API key in upstream requests.
+func (s *Service) decryptAPIKey(encrypted string) string {
+	if len(s.encryptKey) == 0 {
+		return encrypted // No encryption key configured, assume plaintext
+	}
+	decrypted, err := fastaxcrypto.Decrypt(encrypted, s.encryptKey)
+	if err != nil {
+		log.Printf("[WARN] decryptAPIKey: failed to decrypt stored API key (check encryption_key config): %v", err)
+		return "" // Don't leak ciphertext as API key
+	}
+	return decrypted
+}
+
 // getAdaptor returns the appropriate adaptor based on supplier config
 func (s *Service) getAdaptor(supplier *model.Supplier) relay.Adaptor {
 	return relay.GetAdaptor(getAPIType(supplier))
@@ -362,10 +421,16 @@ func getAPIType(supplier *model.Supplier) relay.APIType {
 	// Determine from supplier code or models field
 	code := supplier.Code
 	switch {
-	case code == "anthropic" || code == "claude":
+	case code == SupplierCodeAnthropic || code == SupplierCodeClaude:
 		return relay.APITypeAnthropic
-	case code == "gemini" || code == "google":
+	case code == SupplierCodeGemini || code == SupplierCodeGoogle:
 		return relay.APITypeGemini
+	case code == SupplierCodeDeepSeek:
+		return relay.APITypeDeepSeek
+	case code == SupplierCodeQwen || code == SupplierCodeTongyi || code == SupplierCodeAli:
+		return relay.APITypeQwen
+	case code == SupplierCodeGLM || code == SupplierCodeZhipu:
+		return relay.APITypeGLM
 	default:
 		return relay.APITypeOpenAI
 	}
@@ -379,7 +444,7 @@ func (s *Service) GetRouter() *Router {
 // ImageRelay handles image generation request forwarding
 func (s *Service) ImageRelay(ctx context.Context, userID uint, req *relay.ImageRequest) (*RelayResponse, error) {
 	disabled := s.collectDisabledChannels()
-	maxRetries := 3
+	maxRetries := DefaultMaxRetries
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
@@ -415,7 +480,7 @@ func (s *Service) doImageRelay(ctx context.Context, channel *ChannelEntry, req *
 		SupplierID: supplier.ID,
 		ChannelID:  channel.ChannelID,
 		APIBaseURL: supplier.APIBaseURL,
-		APIKey:     supplier.APIKeyEncrypted,
+		APIKey:     s.decryptAPIKey(supplier.APIKeyEncrypted),
 		APIType:    getAPIType(&supplier),
 		Model:      req.Model,
 	}
@@ -461,7 +526,7 @@ func (s *Service) doImageRelay(ctx context.Context, channel *ChannelEntry, req *
 // AudioRelay handles text-to-speech request forwarding
 func (s *Service) AudioRelay(ctx context.Context, userID uint, req *relay.AudioRequest) (*RelayResponse, error) {
 	disabled := s.collectDisabledChannels()
-	maxRetries := 3
+	maxRetries := DefaultMaxRetries
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
@@ -497,7 +562,7 @@ func (s *Service) doAudioRelay(ctx context.Context, channel *ChannelEntry, req *
 		SupplierID: supplier.ID,
 		ChannelID:  channel.ChannelID,
 		APIBaseURL: supplier.APIBaseURL,
-		APIKey:     supplier.APIKeyEncrypted,
+		APIKey:     s.decryptAPIKey(supplier.APIKeyEncrypted),
 		APIType:    getAPIType(&supplier),
 		Model:      req.Model,
 	}
@@ -517,6 +582,101 @@ func (s *Service) doAudioRelay(ctx context.Context, channel *ChannelEntry, req *
 	if err := adaptor.SetupRequestHeader(httpReq, meta); err != nil {
 		return nil, fmt.Errorf("setup header: %w", err)
 	}
+
+	httpResp, err := s.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("do request: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	if relay.ShouldRetryHTTP(httpResp.StatusCode) {
+		body, _ := io.ReadAll(httpResp.Body)
+		return nil, fmt.Errorf("upstream error %d: %s", httpResp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return &RelayResponse{
+		StatusCode: httpResp.StatusCode,
+		Body:       body,
+	}, nil
+}
+
+// TranscribeAudio handles STT (speech-to-text) request forwarding.
+// Accepts an audio file (multipart) and forwards to the upstream supplier.
+// The audio file is buffered in memory to support retries.
+// Concurrency is limited to maxConcurrentAudioUploads to prevent memory exhaustion.
+func (s *Service) TranscribeAudio(ctx context.Context, userID uint, model string, audioFile io.Reader, filename string) (*RelayResponse, error) {
+	// Acquire semaphore slot (with context cancellation support)
+	select {
+	case s.audioSemaphore <- struct{}{}:
+		defer func() { <-s.audioSemaphore }()
+	case <-ctx.Done():
+		return nil, fmt.Errorf("audio transcription cancelled: %w", ctx.Err())
+	}
+
+	// Buffer audio data for retry support
+	audioData, err := io.ReadAll(audioFile)
+	if err != nil {
+		return nil, fmt.Errorf("read audio file: %w", err)
+	}
+
+	disabled := s.collectDisabledChannels()
+	maxRetries := DefaultMaxRetries
+	var lastErr error
+
+	for i := 0; i < maxRetries; i++ {
+		channel, err := s.router.SelectChannel("", model, disabled)
+		if err != nil {
+			return nil, fmt.Errorf("no available channel: %w", err)
+		}
+
+		resp, err := s.doTranscriptionRelay(ctx, channel, model, audioData, filename)
+		if err != nil {
+			s.recordFailure(channel.ChannelID)
+			disabled[channel.ChannelID] = true
+			lastErr = err
+			continue
+		}
+
+		s.recordSuccess(channel.ChannelID)
+		return resp, nil
+	}
+
+	return nil, fmt.Errorf("all retries exhausted: %w", lastErr)
+}
+
+// doTranscriptionRelay executes an STT relay to a specific channel.
+func (s *Service) doTranscriptionRelay(ctx context.Context, channel *ChannelEntry, sttModel string, audioData []byte, filename string) (*RelayResponse, error) {
+	var supplier model.Supplier
+	if err := s.db.First(&supplier, channel.ChannelID).Error; err != nil {
+		return nil, fmt.Errorf("supplier not found: %w", err)
+	}
+
+	// Build multipart form body for Whisper-compatible API
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	mw.WriteField("model", sttModel)
+	fw, err := mw.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, fmt.Errorf("build multipart: %w", err)
+	}
+	if _, err := io.Copy(fw, bytes.NewReader(audioData)); err != nil {
+		return nil, fmt.Errorf("copy audio file: %w", err)
+	}
+	mw.Close()
+	contentType := mw.FormDataContentType()
+
+	url := supplier.APIBaseURL + "/v1/audio/transcriptions"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", contentType)
+	httpReq.Header.Set("Authorization", "Bearer "+s.decryptAPIKey(supplier.APIKeyEncrypted))
 
 	httpResp, err := s.client.Do(httpReq)
 	if err != nil {
@@ -670,7 +830,7 @@ type VideoRequest struct {
 // VideoRelay handles video generation request forwarding
 func (s *Service) VideoRelay(ctx context.Context, userID uint, req *VideoRequest) (*RelayResponse, error) {
 	disabled := s.collectDisabledChannels()
-	maxRetries := 3
+	maxRetries := DefaultMaxRetries
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
@@ -706,7 +866,7 @@ func (s *Service) doVideoRelay(ctx context.Context, channel *ChannelEntry, req *
 		SupplierID: supplier.ID,
 		ChannelID:  channel.ChannelID,
 		APIBaseURL: supplier.APIBaseURL,
-		APIKey:     supplier.APIKeyEncrypted,
+		APIKey:     s.decryptAPIKey(supplier.APIKeyEncrypted),
 		APIType:    getAPIType(&supplier),
 		Model:      req.Model,
 	}

@@ -1,15 +1,22 @@
-import { Card, Descriptions, Select, App } from "antd";
+import { Card, Descriptions, Select, App, message } from "antd";
 import { useAuthStore } from "@/shared/stores/authStore";
+import api from "@/shared/utils/axios";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
-  const { message } = App.useApp();
+  const { message: msg } = App.useApp();
 
-  const handleLanguageChange = (lang: string) => {
-    if (user) {
+  const handleLanguageChange = async (lang: string) => {
+    if (!user) return;
+    try {
+      await api.put("/user/language", { language: lang });
       setUser({ ...user, preferred_language: lang });
       localStorage.setItem("i18nextLng", lang);
-      message.success("语言偏好已更新");
+      msg.success("语言偏好已保存");
+    } catch {
+      message.error("保存失败，将仅在本会话生效");
+      setUser({ ...user, preferred_language: lang });
+      localStorage.setItem("i18nextLng", lang);
     }
   };
 
@@ -27,6 +34,7 @@ export default function ProfilePage() {
         <Descriptions column={1} bordered>
           <Descriptions.Item label="用户 ID">{user?.id}</Descriptions.Item>
           <Descriptions.Item label="用户名">{user?.username}</Descriptions.Item>
+          <Descriptions.Item label="邮箱">{user?.email || "-"}</Descriptions.Item>
           <Descriptions.Item label="角色">{roleMap[user?.role || ""] || user?.role}</Descriptions.Item>
           <Descriptions.Item label="等级">{user?.level}</Descriptions.Item>
           <Descriptions.Item label="语言偏好">

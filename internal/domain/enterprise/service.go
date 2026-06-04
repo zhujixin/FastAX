@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fastax/fastax-server/internal/shared/constants"
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"gorm.io/gorm"
 )
@@ -48,7 +49,7 @@ func NewService(db *gorm.DB) *Service {
 type SubAccountRequest struct {
 	Email      string   `json:"email" binding:"required,email"`
 	Password   string   `json:"password" binding:"required,min=6"`
-	TokenQuota int64    `json:"token_quota"`
+	TokenQuota string    `json:"token_quota"`
 	Permissions []string `json:"permissions"`
 }
 
@@ -57,7 +58,7 @@ type SubAccountResponse struct {
 	ID          uint     `json:"id"`
 	ParentID    uint     `json:"parent_id"`
 	Email       string   `json:"email"`
-	TokenQuota  int64    `json:"token_quota"`
+	TokenQuota  string   `json:"token_quota"`
 	Permissions []string `json:"permissions"`
 	Status      int      `json:"status"`
 }
@@ -68,7 +69,7 @@ func (s *Service) CreateSubAccount(parentID uint, req *SubAccountRequest) (*SubA
 	if err := s.db.First(&parent, parentID).Error; err != nil {
 		return nil, errors.New("parent user not found")
 	}
-	if parent.Role != "enterprise" && parent.Role != "admin" {
+	if parent.Role != constants.RoleEnterprise && parent.Role != constants.RoleAdmin {
 		return nil, errors.New("only enterprise users can create sub-accounts")
 	}
 
@@ -119,7 +120,7 @@ func (s *Service) SetSubAccountStatus(id, parentID uint, status int) error {
 	return nil
 }
 
-func (s *Service) UpdateQuota(id, parentID uint, quota int64) error {
+func (s *Service) UpdateQuota(id, parentID uint, quota string) error {
 	result := s.db.Model(&model.SubAccount{}).
 		Where("id = ? AND parent_id = ?", id, parentID).
 		Update("token_quota", quota)
@@ -171,7 +172,16 @@ func (s *Service) GetEnterpriseUsage(parentID uint, period string) (*UsageStats,
 	}, nil
 }
 
-func (s *Service) GetSubAccountUsage(subAccountID uint, period string) (*UsageStats, error) {
+func (s *Service) GetSubAccountUsage(subAccountID, parentID uint, period string) (*UsageStats, error) {
+	// Verify sub-account ownership
+	var sa model.SubAccount
+	if err := s.db.Where("id = ? AND parent_id = ?", subAccountID, parentID).First(&sa).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("sub-account not found")
+		}
+		return nil, fmt.Errorf("query sub-account: %w", err)
+	}
+
 	var stats struct {
 		TotalTokens   int
 		TotalRequests int

@@ -35,7 +35,8 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.svc.CreatePayment(&req)
+	userID, _ := c.Get("user_id")
+	resp, err := h.svc.CreatePayment(&req, userID.(uint))
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
 		return
@@ -49,6 +50,13 @@ func (h *Handler) Callback(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, response.CodeParamInvalid, err.Error())
 		return
 	}
+
+	// TODO(SECURITY): Verify gateway signature (WeChat/Stripe webhook signature)
+	// before processing the callback. Without signature verification, an attacker
+	// can forge payment success callbacks.
+	// - WeChat Pay: verify sign in callback body using merchant API v3 key
+	// - Stripe: verify stripe-signature header using webhook signing secret
+	// - Alipay: verify sign using public key
 
 	if err := h.svc.HandleCallback(&cb); err != nil {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternalError, err.Error())
@@ -95,7 +103,8 @@ func (h *Handler) GetPayment(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.svc.GetPaymentByOrderID(uint(orderID))
+	userID, _ := c.Get("user_id")
+	resp, err := h.svc.GetPaymentByOrderID(uint(orderID), userID.(uint))
 	if err != nil {
 		response.Error(c, http.StatusNotFound, response.CodeNotFound, err.Error())
 		return

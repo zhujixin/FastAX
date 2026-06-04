@@ -25,6 +25,7 @@ type TokenProduct struct {
 	UsageNotes      string    `gorm:"type:text"`
 	SortOrder       int       `gorm:"default:0"`
 	Status          int       `gorm:"default:1;index"`
+	VendorID        *uint     `gorm:"index;default:null"` // FK→supplier_vendor
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -35,7 +36,7 @@ type TokenInventory struct {
 	ProductID        uint      `gorm:"index;not null"`
 	TotalAmount      string    `gorm:"size:32;not null"`
 	RemainingAmount  string    `gorm:"size:32;not null"`
-	AlertThreshold   float64   `gorm:"default:10"`
+	AlertThreshold   string    `gorm:"size:32;default:10.00"`
 	LastSyncedAt     *time.Time
 	CreatedAt        time.Time
 	UpdatedAt        time.Time

@@ -10,8 +10,9 @@
 package proxy
 
 import (
+	crand "crypto/rand"
 	"errors"
-	"math/rand"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -19,6 +20,18 @@ import (
 	"github.com/fastax/fastax-server/internal/shared/model"
 	"gorm.io/gorm"
 )
+
+// cryptoRandIntn returns a cryptographically secure random integer in [0, n).
+func cryptoRandIntn(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	bi, err := crand.Int(crand.Reader, big.NewInt(int64(n)))
+	if err != nil {
+		return 0 // crypto/rand errors are extremely rare
+	}
+	return int(bi.Int64())
+}
 
 // ChannelEntry 渠道缓存条目，记录渠道的模型、优先级、权重等信息
 type ChannelEntry struct {
@@ -171,11 +184,11 @@ func (r *Router) SelectChannel(group, model string, disabled map[uint]bool) (*Ch
 		}
 		if totalWeight == 0 {
 			// Equal weight
-			idx := rand.Intn(len(chs))
+			idx := cryptoRandIntn(len(chs))
 			return &chs[idx], nil
 		}
 
-		r := rand.Intn(totalWeight)
+		r := cryptoRandIntn(totalWeight)
 		cumulative := 0
 		for _, ch := range chs {
 			cumulative += ch.Weight

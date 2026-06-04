@@ -5,4 +5,6 @@ export { adminService } from "./admin";
 export { statsService } from "./stats";
 export { notifyService } from "./notifications";
 export { enterpriseService } from "./enterprise";
+export { vendorService } from "./vendor";
+export { costService } from "./cost";
 export * from "./types";

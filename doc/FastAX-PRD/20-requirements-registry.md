@@ -101,6 +101,11 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 | ROUTE-15 | P1 | 06-features/02-token-proxy-module.md | 供应商配额展示 |
 | ROUTE-16 | P0 | 06-features/02-token-proxy-module.md | 路由规则热加载（SyncChannelCache 定时刷新） |
 | ROUTE-17 | P0 | 06-features/02-token-proxy-module.md | Ability 索引表+内存缓存（group+model+channel 复合索引） |
+| ROUTE-18 | P1 | 06-features/02-token-proxy-module.md | Token 长度路由（按输入 token 数量选择模型）🆕 v3.1 |
+| ROUTE-19 | P1 | 06-features/02-token-proxy-module.md | 内容类型路由（图片/视频/音频→多模态渠道）🆕 v3.1 |
+| ROUTE-20 | P1 | 06-features/02-token-proxy-module.md | 最低成本路由（enable_least_cost_routing）🆕 v3.1 |
+| ROUTE-21 | P2 | 06-features/02-token-proxy-module.md | 延迟感知负载均衡（P2C/PeakEWMA 算法）🆕 v3.1 |
+| ROUTE-22 | P2 | 06-features/02-token-proxy-module.md | 路由规则即时热更新（WebSocket <1s 生效）🆕 v3.1 |
 
 #### 交易模块 (F-ORD, F-PAY)
 
@@ -351,6 +356,11 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 | GRDL-07 | P0 | 06-features/12-guardrails.md | 不可篡改审计日志 |
 | GRDL-08 | P0 | 06-features/12-guardrails.md | 护栏流水线 |
 | GRDL-09 | P1 | 06-features/12-guardrails.md | 合规报告导出 |
+| GRDL-10 | P1 | 06-features/12-guardrails.md | 流式护栏（SSE 流中途截断/打码）🆕 v3.1 |
+| GRDL-11 | P1 | 06-features/12-guardrails.md | DLP 数据丢失防护（输入+输出双扫描）🆕 v3.1 |
+| GRDL-12 | P1 | 06-features/12-guardrails.md | 自定义正则替换（脱敏/替换敏感内容）🆕 v3.1 |
+| GRDL-13 | P2 | 06-features/12-guardrails.md | 工具级拦截（function_call/code_interpreter/MCP）🆕 v3.1 |
+| GRDL-14 | P2 | 06-features/12-guardrails.md | 第三方护栏集成接口（标准化适配器）🆕 v3.1 |
 
 #### BYOK (自带 Key)
 
@@ -388,6 +398,9 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 | COST-06 | P1 | 06-features/15-cost-optimization.md | 成本感知路由 |
 | COST-07 | P1 | 06-features/15-cost-optimization.md | 模型回退链 |
 | COST-08 | P2 | 06-features/15-cost-optimization.md | Token 压缩 |
+| COST-09 | P2 | 06-features/15-cost-optimization.md | 上下文压缩网关（超阈值自动压缩，节省 40-70%）🆕 v3.1 |
+| COST-10 | P2 | 06-features/15-cost-optimization.md | 分层上下文策略（T0-T3 四层结构）🆕 v3.1 |
+| COST-11 | P2 | 06-features/15-cost-optimization.md | 碳感知路由（电网碳强度参与路由决策）🆕 v3.1 |
 
 #### 企业功能 (ENT)
 
@@ -428,6 +441,40 @@ Flat lookup table for all 170+ requirement IDs. Each entry links to the source f
 | R-PROTO-02 | 07-non-functional.md | 流式协议完整保持 |
 | R-PROTO-03 | 07-non-functional.md | 协议自动路径检测 |
 | R-PROTO-04 | 07-non-functional.md | 模型后缀变体解析 ≤ 5ms |
+
+#### 语义缓存引擎 (CACHE) 🆕 v3.1
+
+| ID | Pri | Source | Description |
+|----|-----|--------|-------------|
+| CACHE-01 | P0 | 06-features/22-semantic-cache.md | 精确匹配缓存（SHA256 + Redis TTL） |
+| CACHE-02 | P1 | 06-features/22-semantic-cache.md | 语义向量缓存（384维 + 余弦相似度检索） |
+| CACHE-03 | P2 | 06-features/22-semantic-cache.md | 灰度区 LLM 验证（廉价模型二次判定） |
+| CACHE-04 | P0 | 06-features/22-semantic-cache.md | 缓存控制头（x-fastax-cache-ttl/skip-cache/cache-key） |
+| CACHE-05 | P2 | 06-features/22-semantic-cache.md | 流式 SSE 响应缓存与回放 |
+| CACHE-06 | P1 | 06-features/22-semantic-cache.md | 缓存计费（命中按原价 10-30% 计费） |
+| CACHE-07 | P1 | 06-features/22-semantic-cache.md | 缓存命名空间隔离（按用户/团队防污染） |
+
+#### OpenTelemetry 可观测性 (OBSV) 🆕 v3.1
+
+| ID | Pri | Source | Description |
+|----|-----|--------|-------------|
+| OBSV-01 | P0 | 06-features/23-otel-observability.md | 请求级 Trace/Span（Proxy 全链路 Span 树） |
+| OBSV-02 | P0 | 06-features/23-otel-observability.md | GenAI 语义约定（gen_ai.input.messages/output.messages） |
+| OBSV-03 | P0 | 06-features/23-otel-observability.md | 结构化日志关联（trace_id + span_id 自动注入） |
+| OBSV-04 | P1 | 06-features/23-otel-observability.md | W3C Traceparent 分布式追踪传播 |
+| OBSV-05 | P1 | 06-features/23-otel-observability.md | Prometheus 指标导出（40+ 指标 + histogram） |
+| OBSV-06 | P2 | 06-features/23-otel-observability.md | 预置 Grafana 仪表板（延迟/错误率/缓存/费用） |
+
+#### MCP 网关 (MCP) 🆕 v3.1
+
+| ID | Pri | Source | Description |
+|----|-----|--------|-------------|
+| MCP-01 | P1 | 06-features/24-mcp-gateway.md | 统一 MCP 端点（聚合多 MCP Server 工具列表） |
+| MCP-02 | P1 | 06-features/24-mcp-gateway.md | 传输桥接（stdio ↔ SSE ↔ Streamable HTTP） |
+| MCP-03 | P1 | 06-features/24-mcp-gateway.md | 工具路由（按 tool name 前缀防冲突 + 路由分发） |
+| MCP-04 | P2 | 06-features/24-mcp-gateway.md | 工具级授权（CEL 策略引擎 + RBAC/FGA） |
+| MCP-05 | P2 | 06-features/24-mcp-gateway.md | MCP 连接池管理（OAuth 自动刷新 + 超时清理） |
+| MCP-06 | P2 | 06-features/24-mcp-gateway.md | MCP 审计追踪（mcp_event 记录 + trace_id 关联） |
 
 ---
 

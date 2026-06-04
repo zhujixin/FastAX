@@ -3,7 +3,13 @@ package user
 import (
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
+
+func init() {
+	gin.SetMode(gin.TestMode)
+}
 
 func TestVerifyService_GenerateCode_NilCache(t *testing.T) {
 	vs := NewVerifyService(nil)
@@ -22,27 +28,27 @@ func TestVerifyService_GenerateCode_NilCache(t *testing.T) {
 	}
 }
 
-func TestVerifyService_VerifyCode_NilCache_AlwaysPasses(t *testing.T) {
+func TestVerifyService_VerifyCode_NilCache_TestCode(t *testing.T) {
 	vs := NewVerifyService(nil)
 
-	ok, err := vs.VerifyCode("test@test.com", "123456")
+	ok, err := vs.VerifyCode("test@test.com", "000000")
 	if err != nil {
 		t.Fatalf("VerifyCode() error = %v", err)
 	}
 	if !ok {
-		t.Error("VerifyCode() should return true with nil cache (dev mode)")
+		t.Error("VerifyCode() should return true with test code 000000")
 	}
 }
 
 func TestVerifyService_VerifyCode_NilCache_WrongCode(t *testing.T) {
 	vs := NewVerifyService(nil)
 
-	ok, err := vs.VerifyCode("test@test.com", "wrong")
-	if err != nil {
-		t.Fatalf("VerifyCode() error = %v", err)
+	ok, err := vs.VerifyCode("test@test.com", "999999")
+	if err == nil {
+		t.Error("VerifyCode() should return error with wrong code when Redis unavailable")
 	}
-	if !ok {
-		t.Error("VerifyCode() should return true with nil cache regardless of code")
+	if ok {
+		t.Error("VerifyCode() should return false with wrong code")
 	}
 }
 

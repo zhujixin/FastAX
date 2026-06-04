@@ -119,4 +119,9 @@
 | ROUTE-15 | **供应商配额展示**：在供应商卡片/管理后台中实时展示各渠道的配额使用量和余额 | P1 | 参考 CC Switch v3.13.0 供应商卡片设计 |
 | ROUTE-16 | **路由规则热加载**：路由配置修改后，通过 SyncChannelCache 定时刷新（默认 60s）或即时触发，无需重启服务 | P0 | 参考 one-api InitChannelCache + SyncChannelCache |
 | ROUTE-17 | **Ability 索引表 + 内存缓存**：维护 group+model+channel_id 复合索引，路由时优先查全量内存缓存（`group2model2channels` 三级 map），定时从 ability_index 表同步；缓存未命中时回退查 DB | P0 | 参考 one-api 的 InitChannelCache/SyncChannelCache 双缓存模式 |
+| ROUTE-18 | **Token 长度路由**：按输入请求的 token 数量自动选择合适模型 —— 短文本（≤1K）→ 快速模型（如 gpt-4o-mini），长文本（>32K）→ 大窗口模型（如 deepseek-v4），可配置阈值和映射规则 | P1 | 参考 LiteLLM `input_token_length_gt` 条件路由 |
+| ROUTE-19 | **内容类型路由**：自动检测请求中的媒体内容类型（图片、视频、音频），将含图片的请求路由到 Vision 能力渠道、含音频的请求路由到 Audio 能力渠道 | P1 | 参考 LiteLLM `contains_image` 条件路由 + Cloudflare 动态路由 |
+| ROUTE-20 | **最低成本路由**：启用 `enable_least_cost_routing` 模式后，在满足延迟约束（用户可配）的前提下，自动选择价格最低的可用供应商，支持同模型多供应商比价 | P1 | 参考 LiteLLM `least_cost_routing`；与 COST-06 成本感知路由联动增强 |
+| ROUTE-21 | **延迟感知负载均衡**：采用 P2C（Power of Two Choices）+ PeakEWMA 算法，基于实时延迟和错误率指标动态加权选择渠道，替代纯随机选择，降低 P95 尾延迟 | P2 | 参考 Helicone P2C 负载均衡 |
+| ROUTE-22 | **路由规则即时热更新**：路由配置修改后通过 WebSocket/Redis PubSub 即时推送变更，< 1 秒内所有实例生效，替代定时 60s 轮询刷新 | P2 | 在 ROUTE-16 基础上演进，低延迟配置生效 |
 
